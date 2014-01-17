@@ -1,0 +1,8 @@
+# putio-sync pip requirements
+#
+# Sync by doing (in a virtualenv)
+# pip install -r requirements.txt
+# 
+requests
+putio.py
+flask
