@@ -6,3 +6,4 @@
 requests
 putio.py
 flask
+progressbar
