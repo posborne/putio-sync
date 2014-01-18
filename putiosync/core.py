@@ -82,10 +82,11 @@ class DownloadQueue(object):
 class PutioSynchronizer(object):
     """Object encapsulating core synchronization logic and state"""
 
-    def __init__(self, token, download_directory, keep_files=False):
+    def __init__(self, token, download_directory, keep_files=False, poll_frequency=60):
         self._token = token
         self._download_directory = download_directory
         self._putio_client = putio.Client(token)
+        self._poll_frequency = poll_frequency
         self._keep_files = keep_files
         self._download_queue = DownloadQueue()
         self._db_engine = None
@@ -183,4 +184,4 @@ class PutioSynchronizer(object):
         self._ensure_database_exists()
         while True:
             self._perform_single_check()
-            time.sleep(CHECK_PERIOD_SECONDS)
+            time.sleep(self._poll_frequency)

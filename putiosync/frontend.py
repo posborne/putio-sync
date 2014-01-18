@@ -13,6 +13,12 @@ def parse_arguments():
         default=False,
         help="Keep files on put.io; do not automatically delete")
     parser.add_argument(
+        "-p", "--poll-frequency",
+        default=60,
+        type=int,
+        help="Polling frequency in seconds (default: 1 minute)",
+    )
+    parser.add_argument(
         "download_directory",
         help="Directory into which files should be downloaded")
     args = parser.parse_args()
@@ -34,7 +40,8 @@ def main():
     synchronizer = PutioSynchronizer(
         token=token,
         download_directory=args.download_directory,
-        keep_files=args.keep)
+        keep_files=args.keep,
+        poll_frequency=args.poll_frequency)
     synchronizer.run_forever()
     return 0
 
