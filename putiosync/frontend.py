@@ -31,7 +31,10 @@ def main():
     token_manager.save_token(token)
 
     # Let's start syncing!
-    synchronizer = PutioSynchronizer(token, args.download_directory)
+    synchronizer = PutioSynchronizer(
+        token=token,
+        download_directory=args.download_directory,
+        keep_files=args.keep)
     synchronizer.run_forever()
     return 0
 

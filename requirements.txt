@@ -1,8 +1,6 @@
-# putio-sync pip requirements
-#
-# Sync by doing (in a virtualenv)
+# Can be install by doing
 # pip install -r requirements.txt
-# 
-requests
-putio.py
-progressbar
+requests==2.2.0
+putio.py==2.1.0
+progressbar==2.2
+sqlalchemy==0.9.1

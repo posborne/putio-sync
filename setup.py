@@ -3,6 +3,15 @@ import putiosync
 
 __author__ = 'Paul Osborne'
 
+
+def get_requirements():
+    reqs = []
+    for line in open('requirements.txt').readlines():
+        if line and not line.startswith('#'):
+            reqs.append(line)
+    return reqs
+
+
 setup(
     name='putiosync',
     version=putiosync.__version__,
@@ -12,11 +21,7 @@ setup(
     license='MIT',
     packages=['putiosync'],
     entry_points={'console_scripts': ['putiosync=putiosync.frontend:main']},
-    install_requires=[
-        'requests==2.2.0',
-        'progressbar==2.2',
-        'putio.py==2.1.0'
-    ],
+    install_requires=get_requirements(),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',

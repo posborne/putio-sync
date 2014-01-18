@@ -5,16 +5,27 @@
 #
 import collections
 import json
+import datetime
+import logging
 import progressbar
+from putiosync.dbmodel import DBModelBase, DownloadRecord
 import re
 import webbrowser
 import time
 import os
 import putio
+from sqlalchemy import create_engine, exists
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.session import sessionmaker
+
+
+logger = logging.getLogger("putiosync")
 
 CLIENT_ID = 6017
-THIS_DIR = os.path.dirname(__file__)
-SYNC_FILE = os.path.join(THIS_DIR, "../putiosync.json")
+HOME_DIR = os.path.expanduser("~")
+SETTINGS_DIR = os.path.join(HOME_DIR, ".putiosync")
+SYNC_FILE = os.path.join(SETTINGS_DIR, "putiosync.json")
+DATABASE_FILE = os.path.join(SETTINGS_DIR, "putiosync.db")
 CHECK_PERIOD_SECONDS = 10
 
 
@@ -26,6 +37,8 @@ class TokenManager(object):
 
     def save_token(self, token):
         """Save the provided token to disk"""
+        if not os.path.exists(SETTINGS_DIR):
+            os.makedirs(SETTINGS_DIR)
         with open(SYNC_FILE, "w") as f:
             f.write(json.dumps({"token": token}))
 
@@ -69,56 +82,96 @@ class DownloadQueue(object):
 class PutioSynchronizer(object):
     """Object encapsulating core synchronization logic and state"""
 
-    def __init__(self, token, download_directory):
+    def __init__(self, token, download_directory, keep_files=False):
         self._token = token
         self._download_directory = download_directory
         self._putio_client = putio.Client(token)
+        self._keep_files = keep_files
         self._download_queue = DownloadQueue()
+        self._db_engine = None
+        self._db = None
 
     def _is_directory(self, putio_file):
         return (putio_file.content_type == 'application/x-directory')
 
-    def _do_download(self, putio_file, dest, delete_after_download=False):
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-        response = putio_file.client.request(
-            '/files/%s/download' % putio_file.id,
-            raw=True, stream=True)
-        filename = re.match(
-            'attachment; filename=(.*)',
-            response.headers['content-disposition']).groups()[0]
-        filename = filename.strip('"')
+    def _ensure_database_exists(self):
+        if not os.path.exists(SETTINGS_DIR):
+            os.makedirs(SETTINGS_DIR)
+        self._db_engine = create_engine("sqlite:///{}".format(DATABASE_FILE))
+        self._db_engine.connect()
+        self._db = sessionmaker(self._db_engine)()
+        DBModelBase.metadata.create_all(self._db_engine)
 
-        total = putio_file.size
-        downloaded = 0
-        widgets = [
-            progressbar.Percentage(), ' ',
-            progressbar.Bar(), ' ',
-            progressbar.ETA(), ' ',
-            progressbar.FileTransferSpeed()]
-        pbar = progressbar.ProgressBar(widgets=widgets, maxval=total).start()
-        with open(os.path.join(dest, filename), 'wb') as f:
-            for chunk in response.iter_content(chunk_size=256):
-                if chunk:  # filter out keep-alive new chunks
-                    downloaded += len(chunk)
-                    pbar.update(downloaded)
-                    f.write(chunk)
-                    f.flush()
+    def _already_downloaded(self, putio_file, dest):
+        if os.path.exists(os.path.join(dest, "{}.part".format(putio_file.name))):
+            return True  # TODO: check size and/or crc32 checksum?
+        matching_rec_exists = self._db.query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
+        return matching_rec_exists
+
+    def _record_downloaded(self, putio_file):
+        matching_rec_exists = self._db.query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
+        if not matching_rec_exists:
+            download_record = DownloadRecord(
+                file_id=putio_file.id,
+                size=putio_file.size,
+                timestamp=datetime.datetime.now(),
+                name=putio_file.name)
+            self._db.add(download_record)
+            self._db.commit()
+        else:
+            logger.warn("File with id %r already marked as downloaded!", putio_file.id)
+
+    def _do_download(self, putio_file, dest, delete_after_download=False):
+        if dest.endswith("..."):
+            dest = dest[:-3]
+        if not self._already_downloaded(putio_file, dest):
+            print "Downloading {}".format(putio_file)
+            if not os.path.exists(dest):
+                os.makedirs(dest)
+            response = putio_file.client.request(
+                '/files/%s/download' % putio_file.id,
+                raw=True, stream=True)
+            filename = re.match(
+                'attachment; filename=(.*)',
+                response.headers['content-disposition']).groups()[0]
+            filename = filename.strip('"')
+
+            total = putio_file.size
+            downloaded = 0
+            widgets = [
+                progressbar.Percentage(), ' ',
+                progressbar.Bar(), ' ',
+                progressbar.ETA(), ' ',
+                progressbar.FileTransferSpeed()]
+            pbar = progressbar.ProgressBar(widgets=widgets, maxval=total).start()
+            final_path = os.path.join(dest, filename)
+            download_path = "{}.part".format(final_path)
+            with open(download_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=256):
+                    if chunk:  # filter out keep-alive new chunks
+                        downloaded += len(chunk)
+                        pbar.update(downloaded)
+                        f.write(chunk)
+                        f.flush()
+            if os.path.exists(final_path):
+                os.remove(final_path)
+            os.rename(download_path, download_path[:-5])  # same but without '.part'
+            self._record_downloaded(putio_file)
 
         if delete_after_download:
             putio_file.delete()
 
     def _download_and_delete(self, putio_file, relpath="", level=0):
-        print "Downloading {}{}".format("  " * level, putio_file)
         # add this file (or files in this directory) to the queue
         if not self._is_directory(putio_file):
             target_dir = os.path.join(self._download_directory, relpath)
-            self._do_download(putio_file, target_dir, delete_after_download=True)
+            self._do_download(putio_file, target_dir, delete_after_download=(not self._keep_files))
         else:
             for child in putio_file.dir():
                 self._download_and_delete(
                     child, os.path.join(relpath, putio_file.name), level + 1)
-            putio_file.delete()  # children already downloaded
+            if not self._keep_files:
+                putio_file.delete()  # children already downloaded
 
     def _perform_single_check(self):
         # Perform a single check for updated files to download
@@ -127,6 +180,7 @@ class PutioSynchronizer(object):
 
     def run_forever(self):
         """Run the synchronizer until killed"""
+        self._ensure_database_exists()
         while True:
             self._perform_single_check()
             time.sleep(CHECK_PERIOD_SECONDS)
