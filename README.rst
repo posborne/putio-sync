@@ -3,19 +3,19 @@ putio-sync
 
 Script for automatically downloading files from put.io
 
-Getting Started
----------------
+Installation and Usage
+----------------------
 
-There are a few requirements that can be installed via pip.  I
-recommend doing the following to install the requirements in a
-controlled fashion:
+Installation can be performed via pip::
 
-    $ cd putio-sync
-    $ virtualenv env
-    $ source env/bin/activate
-    $ pip install -r requirements.txt
-    $ ./putiosync.py -h
-    ...
+    $ pip install putiosync
+
+This will install a new application 'putiosync' that can be called from the command
+line as follows::
+
+    $ putiosync <download_directory>
+
+Other options and customizations are available by using the '-h' or '--help' options.
 
 Authentication
 --------------
