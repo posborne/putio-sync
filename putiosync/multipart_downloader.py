@@ -51,11 +51,12 @@ class _MultiSegmentDownloadWorker(threading.Thread):
 
     def run(self):
         while not self._told_to_stop:
-            try:
-                segment = self._work_queue.get()
-            except Queue.Empty:
+            segment = self._work_queue.get()
+            if segment is None:
                 break
-            self._download_segment(segment)
+            else:
+                self._download_segment(segment)
+        self._work_queue.put(None)
 
 
 class _Segment(object):
@@ -69,10 +70,8 @@ class _Segment(object):
     def build_range_header(self):
         """Build an http range header for this segment"""
         if self.is_last_segment:
-            print "Requesting range %s-%s" % (self.offset, "")
             return "bytes={}-{}".format(self.offset, "")
         else:
-            print "Requesting range %s-%s" % (self.offset, self.offset + self.size - 1)
             return "bytes={}-{}".format(self.offset, self.offset + self.size - 1)
 
 
@@ -113,13 +112,20 @@ def download(url, size, transfer_callback, num_workers=5, segment_size_bytes=100
         seg = _Segment(offset=pos, size=size - pos, is_last_segment=True)
         work_queue.put(seg)
 
+    # queue up one None for each worker to let it know that things are complete
+    for _ in xrange(num_workers):
+        work_queue.put(None)
+
+    workers_completed = 0
     while True:
-        try:
-            offset, chunk = completion_queue.get()
-        except Queue.Empty:
-            break
-        transfer_callback(offset, chunk)
+        msg = completion_queue.get()
+        if msg is None:  # a worker just finished
+            workers_completed += 1
+            if workers_completed == num_workers:
+                break
+        else:
+            offset, chunk = msg
+            transfer_callback(offset, chunk)
 
     for worker in workers:
-        worker.stop()
         worker.join()
