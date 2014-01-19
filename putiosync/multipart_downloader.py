@@ -22,6 +22,7 @@ class _MultiSegmentDownloadWorker(threading.Thread):
 
     def __init__(self, url, worker_num, work_queue, completion_queue, request_kwargs):
         threading.Thread.__init__(self, name="Worker on {} #{}".format(url, worker_num))
+        self.setDaemon(True)
         self._url = url
         self._worker_num = worker_num
         self._told_to_stop = False
@@ -56,7 +57,7 @@ class _MultiSegmentDownloadWorker(threading.Thread):
                 break
             else:
                 self._download_segment(segment)
-        self._work_queue.put(None)
+        self._completion_queue.put(None)
 
 
 class _Segment(object):
@@ -75,7 +76,7 @@ class _Segment(object):
             return "bytes={}-{}".format(self.offset, self.offset + self.size - 1)
 
 
-def download(url, size, transfer_callback, num_workers=5, segment_size_bytes=100 * 1024 * 1024, **kwargs):
+def download(url, size, transfer_callback, num_workers=4, segment_size_bytes=200 * 1024 * 1024, **kwargs):
     """Start the download with this downloads settings
 
     As multi-segment downloads are really only useful for very large
@@ -92,6 +93,7 @@ def download(url, size, transfer_callback, num_workers=5, segment_size_bytes=100
     work_queue = Queue.Queue()
     completion_queue = Queue.Queue()
 
+    num_workers = min(num_workers, int(size / segment_size_bytes) + 1)
 
     # create workers and start them
     workers = [_MultiSegmentDownloadWorker(url, i + 1, work_queue, completion_queue, kwargs)

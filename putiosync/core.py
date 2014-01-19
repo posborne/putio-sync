@@ -195,5 +195,4 @@ class PutioSynchronizer(object):
         self._ensure_database_exists()
         while True:
             self._perform_single_check()
-            print "Sleeping... {}".format(self._poll_frequency)
             time.sleep(self._poll_frequency)
