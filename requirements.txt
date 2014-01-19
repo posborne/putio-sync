@@ -4,3 +4,4 @@ requests==2.2.0
 putio.py==2.1.0
 progressbar==2.2
 sqlalchemy==0.9.1
+tvrenamr==3.4.11
