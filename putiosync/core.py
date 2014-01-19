@@ -8,6 +8,7 @@ import json
 import datetime
 import logging
 import progressbar
+from putiosync import multipart_downloader
 from putiosync.dbmodel import DBModelBase, DownloadRecord
 import re
 import webbrowser
@@ -15,7 +16,6 @@ import time
 import os
 import putio
 from sqlalchemy import create_engine, exists
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import sessionmaker
 
 
@@ -125,42 +125,53 @@ class PutioSynchronizer(object):
     def _do_download(self, putio_file, dest, delete_after_download=False):
         if dest.endswith("..."):
             dest = dest[:-3]
+
         if not self._already_downloaded(putio_file, dest):
             print "Downloading {}".format(putio_file)
             if not os.path.exists(dest):
                 os.makedirs(dest)
-            response = putio_file.client.request(
-                '/files/%s/download' % putio_file.id,
-                raw=True, stream=True)
-            filename = re.match(
-                'attachment; filename=(.*)',
-                response.headers['content-disposition']).groups()[0]
-            filename = filename.strip('"')
 
             total = putio_file.size
-            downloaded = 0
             widgets = [
                 progressbar.Percentage(), ' ',
                 progressbar.Bar(), ' ',
                 progressbar.ETA(), ' ',
                 progressbar.FileTransferSpeed()]
             pbar = progressbar.ProgressBar(widgets=widgets, maxval=total).start()
+
+            # Helper to get the filename in the form that we need for the full multi-segment download
+            response = putio_file.client.request('/files/%s/download' % putio_file.id, raw=True, stream=True)
+            filename = re.match('attachment; filename=(.*)',
+                                response.headers['content-disposition']).groups()[0].strip('"')
+            response.close()
+
             final_path = os.path.join(dest, filename)
             download_path = "{}.part".format(final_path)
             with open(download_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=256):
-                    if chunk:  # filter out keep-alive new chunks
-                        downloaded += len(chunk)
-                        pbar.update(downloaded)
-                        f.write(chunk)
-                        f.flush()
+                download_info = {"downloaded": 0}
+
+                def transfer_callback(offset, chunk):
+                    download_info["downloaded"] += len(chunk)
+                    pbar.update(download_info["downloaded"])
+                    f.seek(offset)
+                    f.write(chunk)
+                    f.flush()
+                multipart_downloader.download(
+                    putio.BASE_URL + '/files/{}/download'.format(putio_file.id),
+                    putio_file.size,
+                    transfer_callback,
+                    params={'oauth_token': self._token})
+
+
+            # download to part file is complete.  Now move to its final destination
             if os.path.exists(final_path):
                 os.remove(final_path)
             os.rename(download_path, download_path[:-5])  # same but without '.part'
-            self._record_downloaded(putio_file)
 
-        if delete_after_download:
-            putio_file.delete()
+            # and write a record of the download to the database
+            self._record_downloaded(putio_file)
+            if delete_after_download:
+                putio_file.delete()
 
     def _download_and_delete(self, putio_file, relpath="", level=0):
         # add this file (or files in this directory) to the queue
@@ -184,4 +195,5 @@ class PutioSynchronizer(object):
         self._ensure_database_exists()
         while True:
             self._perform_single_check()
+            print "Sleeping... {}".format(self._poll_frequency)
             time.sleep(self._poll_frequency)
