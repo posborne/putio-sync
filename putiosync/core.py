@@ -186,9 +186,12 @@ class PutioSynchronizer(object):
                 putio_file.delete()  # children already downloaded
 
     def _perform_single_check(self):
-        # Perform a single check for updated files to download
-        for putio_file in self._putio_client.File.list():
-            self._download_and_delete(putio_file)
+        try:
+            # Perform a single check for updated files to download
+            for putio_file in self._putio_client.File.list():
+                self._download_and_delete(putio_file)
+        except:
+            logger.exception("Unexpected error while performing check/download")
 
     def run_forever(self):
         """Run the synchronizer until killed"""
