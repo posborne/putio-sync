@@ -18,6 +18,8 @@ setup(
     description='Automatically download content from put.io',
     long_description=open('README.rst').read(),
     author=putiosync.__author__,
+    author_email='osbpau@gmail.com',
+    url="http://posborne.github.io/putio-sync/",
     license='MIT',
     packages=['putiosync'],
     entry_points={'console_scripts': ['putiosync=putiosync.frontend:main']},
@@ -30,7 +32,7 @@ setup(
         'Natural Language :: English',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX',
-        'Operation System :: Microsoft :: Windows',
+        'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Topic :: Utilities'
