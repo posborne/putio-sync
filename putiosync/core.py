@@ -29,6 +29,25 @@ DATABASE_FILE = os.path.join(SETTINGS_DIR, "putiosync.db")
 CHECK_PERIOD_SECONDS = 10
 
 
+class DatabaseManager(object):
+
+    def __init__(self):
+        self._db_engine = None
+        self._db = None
+        self._ensure_database_exists()
+
+    def _ensure_database_exists(self):
+        if not os.path.exists(SETTINGS_DIR):
+            os.makedirs(SETTINGS_DIR)
+        self._db_engine = create_engine("sqlite:///{}".format(DATABASE_FILE))
+        self._db_engine.connect()
+        self._db = sessionmaker(self._db_engine)()
+        DBModelBase.metadata.create_all(self._db_engine)
+
+    def get_db(self):
+        return self._db
+
+
 class TokenManager(object):
     """Object responsible for providing access to API token"""
 
@@ -82,43 +101,34 @@ class DownloadQueue(object):
 class PutioSynchronizer(object):
     """Object encapsulating core synchronization logic and state"""
 
-    def __init__(self, token, download_directory, keep_files=False, poll_frequency=60):
+    def __init__(self, token, download_directory, db_manager, keep_files=False, poll_frequency=60):
         self._token = token
         self._download_directory = download_directory
+        self._db_manager = db_manager
         self._putio_client = putio.Client(token)
         self._poll_frequency = poll_frequency
         self._keep_files = keep_files
         self._download_queue = DownloadQueue()
-        self._db_engine = None
-        self._db = None
 
     def _is_directory(self, putio_file):
         return (putio_file.content_type == 'application/x-directory')
 
-    def _ensure_database_exists(self):
-        if not os.path.exists(SETTINGS_DIR):
-            os.makedirs(SETTINGS_DIR)
-        self._db_engine = create_engine("sqlite:///{}".format(DATABASE_FILE))
-        self._db_engine.connect()
-        self._db = sessionmaker(self._db_engine)()
-        DBModelBase.metadata.create_all(self._db_engine)
-
     def _already_downloaded(self, putio_file, dest):
         if os.path.exists(os.path.join(dest, "{}.part".format(putio_file.name))):
             return True  # TODO: check size and/or crc32 checksum?
-        matching_rec_exists = self._db.query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
+        matching_rec_exists = self._db_manager.get_db().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         return matching_rec_exists
 
     def _record_downloaded(self, putio_file):
-        matching_rec_exists = self._db.query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
+        matching_rec_exists = self._db_manager.get_db().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         if not matching_rec_exists:
             download_record = DownloadRecord(
                 file_id=putio_file.id,
                 size=putio_file.size,
                 timestamp=datetime.datetime.now(),
                 name=putio_file.name)
-            self._db.add(download_record)
-            self._db.commit()
+            self._db_manager.get_db().add(download_record)
+            self._db_manager.get_db().commit()
         else:
             logger.warn("File with id %r already marked as downloaded!", putio_file.id)
 
@@ -195,7 +205,6 @@ class PutioSynchronizer(object):
 
     def run_forever(self):
         """Run the synchronizer until killed"""
-        self._ensure_database_exists()
         while True:
             self._perform_single_check()
             time.sleep(self._poll_frequency)
