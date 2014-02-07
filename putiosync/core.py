@@ -107,7 +107,7 @@ class PutioSynchronizer(object):
         DBModelBase.metadata.create_all(self._db_engine)
 
     def _already_downloaded(self, putio_file, dest):
-        if os.path.exists(os.path.join(dest, "{}.part".format(putio_file.name))):
+        if os.path.exists(os.path.join(dest, "{}".format(putio_file.name))):
             return True  # TODO: check size and/or crc32 checksum?
         matching_rec_exists = self._db.query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         return matching_rec_exists
