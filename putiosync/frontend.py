@@ -2,6 +2,7 @@ import argparse
 import sys
 import threading
 from putiosync.core import TokenManager, PutioSynchronizer, DatabaseManager
+from putiosync.download_manager import DownloadManager
 from putiosync.webif.webif import WebInterface
 
 __author__ = 'Paul Osborne'
@@ -40,16 +41,19 @@ def main():
 
     # Let's start syncing!
     db_manager = DatabaseManager()
+    download_manager = DownloadManager(token=token)
+    download_manager.start()
     synchronizer = PutioSynchronizer(
         token=token,
         download_directory=args.download_directory,
         db_manager=db_manager,
+        download_manager=download_manager,
         keep_files=args.keep,
         poll_frequency=args.poll_frequency)
     t = threading.Thread(target=synchronizer.run_forever)
     t.setDaemon(True)
     t.start()
-    web_interface = WebInterface(db_manager.get_db())
+    web_interface = WebInterface(db_manager)
     web_interface.run()
     return 0
 

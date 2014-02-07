@@ -1,26 +1,60 @@
+from math import ceil
+
 import flask
 import flask.ext.restless
 from flask.ext.restless import APIManager
-from putiosync.core import DATABASE_FILE
-from putiosync.dbmodel import DownloadRecord, DBModelBase
+from putiosync.dbmodel import DownloadRecord
 from flask import render_template
 from sqlalchemy import desc, func
-from flask_sqlalchemy import SQLAlchemy, BaseQuery, _QueryProperty
 
-RECORDS_PER_PAGE = 50
+
+class Pagination(object):
+
+    # NOTE: pagination is a feature that is included with flask-sqlalchemy, but after
+    #   working with it initially, it was far too hacky to use this in combination
+    #   with a model that wasn't declared with the flask-sqlalchemy meta base.  Since
+    #   I did not and do not want to do that, this exists.
+
+    def __init__(self, query, page, per_page):
+        self.query = query
+        self.page = page
+        self.per_page = per_page
+        self.total_count = query.count()
+
+    @property
+    def items(self):
+        return self.query.offset((self.page - 1) * self.per_page).all()
+
+    @property
+    def pages(self):
+        return int(ceil(self.total_count / float(self.per_page)))
+
+    @property
+    def has_prev(self):
+        return self.page > 1
+
+    @property
+    def has_next(self):
+        return self.page < self.pages
+
+    def iter_pages(self, left_edge=2, left_current=2,
+                   right_current=5, right_edge=2):
+        last = 0
+        for num in xrange(1, self.pages + 1):
+            if (num <= left_edge or
+                (self.page - left_current - 1 < num < self.page + right_current) or
+                num > self.pages - right_edge):
+                if last + 1 != num:
+                    yield None
+                yield num
+                last = num
 
 
 class WebInterface(object):
-    def __init__(self, db_session):
+    def __init__(self, db_manager):
         self.app = flask.Flask(__name__)
-        self.app.config['DEBUG'] = True
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///{}".format(DATABASE_FILE)
-        self.db = SQLAlchemy(self.app)
-        self.db.Model = DBModelBase
-        self.db.Model.query_class = BaseQuery
-        self.db.Model.query = _QueryProperty(self.db)
-        self.db_session = db_session
-        self.api_manager = APIManager(self.app, session=self.db_session)
+        self.db_manager = db_manager
+        self.api_manager = APIManager(self.app, session=self.db_manager.get_db_session())
 
         def include_datetime(result):
             print result
@@ -55,13 +89,12 @@ class WebInterface(object):
         return render_template("index.html")
 
     def _view_history(self, page=1):
-        downloads = (DownloadRecord.query
-                     .order_by(desc(DownloadRecord.id)))
-        total_downloaded = self.db.session.query(func.sum(DownloadRecord.size)).scalar()
-        print total_downloaded
+        session = self.db_manager.get_db_session()
+        downloads = session.query(DownloadRecord).order_by(desc(DownloadRecord.id))
+        total_downloaded = session.query(func.sum(DownloadRecord.size)).scalar()
         return render_template("history.html",
                                total_downloaded=total_downloaded,
-                               history=downloads.paginate(page, per_page=100))
+                               history=Pagination(downloads, page, per_page=100))
 
     def run(self):
         self.app.run()
