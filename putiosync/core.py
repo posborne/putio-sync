@@ -19,7 +19,10 @@ from sqlalchemy import create_engine, exists
 from sqlalchemy.orm.session import sessionmaker
 
 
+logging.basicConfig(level=logging.WARN,
+                    format='%(asctime)s | %(name)-12s | %(levelname)-8s | %(message)s')
 logger = logging.getLogger("putiosync")
+
 
 CLIENT_ID = 6017
 HOME_DIR = os.path.expanduser("~")
@@ -195,7 +198,9 @@ class PutioSynchronizer(object):
 
     def run_forever(self):
         """Run the synchronizer until killed"""
+        logger.info("Creating Database")
         self._ensure_database_exists()
+        logger.warn("Starting main application")
         while True:
             self._perform_single_check()
             time.sleep(self._poll_frequency)
