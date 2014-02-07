@@ -19,7 +19,10 @@ from sqlalchemy import create_engine, exists
 from sqlalchemy.orm.session import sessionmaker
 
 
+logging.basicConfig(level=logging.WARN,
+                    format='%(asctime)s | %(name)-12s | %(levelname)-8s | %(message)s')
 logger = logging.getLogger("putiosync")
+
 
 CLIENT_ID = 6017
 HOME_DIR = os.path.expanduser("~")
@@ -114,7 +117,7 @@ class PutioSynchronizer(object):
         return (putio_file.content_type == 'application/x-directory')
 
     def _already_downloaded(self, putio_file, dest):
-        if os.path.exists(os.path.join(dest, "{}.part".format(putio_file.name))):
+        if os.path.exists(os.path.join(dest, "{}".format(putio_file.name))):
             return True  # TODO: check size and/or crc32 checksum?
         matching_rec_exists = self._db_manager.get_db().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         return matching_rec_exists
@@ -205,6 +208,7 @@ class PutioSynchronizer(object):
 
     def run_forever(self):
         """Run the synchronizer until killed"""
+        logger.warn("Starting main application")
         while True:
             self._perform_single_check()
             time.sleep(self._poll_frequency)
