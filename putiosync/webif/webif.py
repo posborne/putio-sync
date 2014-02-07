@@ -51,10 +51,11 @@ class Pagination(object):
 
 
 class WebInterface(object):
-    def __init__(self, db_manager):
+    def __init__(self, db_manager, download_manager):
         self.app = flask.Flask(__name__)
         self.db_manager = db_manager
         self.api_manager = APIManager(self.app, session=self.db_manager.get_db_session())
+        self.download_manager = download_manager
 
         def include_datetime(result):
             print result
@@ -73,6 +74,7 @@ class WebInterface(object):
         self.app.add_url_rule("/", view_func=self._view_active)
         self.app.add_url_rule("/active", view_func=self._view_active)
         self.app.add_url_rule("/history", view_func=self._view_history)
+        self.app.add_url_rule("/download_queue", view_func=self._view_download_queue)
         self.app.add_url_rule("/history/page/<int:page>", view_func=self._view_history)
 
     def _pretty_size(self, size):
@@ -86,7 +88,21 @@ class WebInterface(object):
             return "%s B" % size
 
     def _view_active(self):
-        return render_template("index.html")
+        return render_template("active.html")
+
+    def _view_download_queue(self):
+        download_queue = {
+            "downloads": []
+        }
+        for download in self.download_manager.get_downloads():
+            download_queue["downloads"].append(
+                {
+                    "name": download.get_putio_file().name,
+                    "size": download.get_size(),
+                    "downloaded": download.get_downloaded(),
+                }
+            )
+        return flask.jsonify(download_queue)
 
     def _view_history(self, page=1):
         session = self.db_manager.get_db_session()

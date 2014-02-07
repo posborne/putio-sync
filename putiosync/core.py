@@ -145,7 +145,10 @@ class PutioSynchronizer(object):
                 pbar.start()
 
             def progress_callback(_download):
-                pbar.update(download.get_downloaded())
+                try:
+                    pbar.update(download.get_downloaded())
+                except AssertionError:
+                    pass  # ignore, has happened
 
             def completion_callback(_download):
                 # and write a record of the download to the database

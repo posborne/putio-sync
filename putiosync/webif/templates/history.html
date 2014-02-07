@@ -1,39 +1,9 @@
 {% extends "base.html" %}
-
-{% macro render_pagination(pagination, endpoint) %}
-  <ul class="pagination">
-  {%- for page in pagination.iter_pages() %}
-    {% if page %}
-      {% if page != pagination.page %}
-        <li><a href="{{ url_for(endpoint, page=page) }}">{{ page }}</a></li>
-      {% else %}
-       <li class="active"><a href="{{ url_for(endpoint, page=page) }}">{{ page }}</a></li>
-      {% endif %}
-    {% else %}
-      <li class="inactive"><a href="#">...</a></li>
-    {% endif %}
-  {%- endfor %}
-  </div>
-{% endmacro %}
+{% import 'macros.html' as macros %}
 
 {% block body %}
 <h2>Download History</h2>
 <p><em>You've downloaded a total of {{ total_downloaded|prettysize }}.</em></p>
-<table id="history_tbl" class="table table-striped table-bordered">
-    <thead>
-    <th>id</th>
-    <th>Size</th>
-    <th>name</th>
-    </thead>
-    <tbody>
-    {% for download in history.items %}
-        <tr>
-            <td>{{ download.id }}</td>
-            <td>{{ download.size|prettysize }}</td>
-            <td>{{ download.name }}</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
-{{ render_pagination(history, "_view_history") }}
+{{ macros.render_downloads(history.items) }}
+{{ macros.render_pagination(history, "_view_history") }}
 {% endblock %}

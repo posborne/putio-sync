@@ -181,6 +181,11 @@ class DownloadManager(threading.Thread):
         with self._download_queue_lock:
             self._completion_callbacks.add(completion_callback)
 
+    def get_downloads(self):
+        """Get a list of the downloads active at this time"""
+        with self._download_queue_lock:
+            return list(self._download_queue)
+
     def is_empty(self):
         """Return True if there are no queued downloads"""
         with self._download_queue_lock:
@@ -190,8 +195,9 @@ class DownloadManager(threading.Thread):
         """Main loop for the download manager"""
         while not self._has_exit:
             try:
-                download = self._download_queue.popleft()
+                download = self._download_queue[0]  # keep in queue until complete
             except IndexError:
                 time.sleep(0.5)  # don't busily spin
             else:
                 download.perform_download(self._token)
+                self._download_queue.popleft()
