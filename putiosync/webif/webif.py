@@ -1,4 +1,5 @@
 from math import ceil
+import datetime
 
 import flask
 import flask.ext.restless
@@ -23,7 +24,7 @@ class Pagination(object):
 
     @property
     def items(self):
-        return self.query.offset((self.page - 1) * self.per_page).all()
+        return self.query.offset((self.page - 1) * self.per_page).limit(self.per_page).all()
 
     @property
     def pages(self):
@@ -50,12 +51,52 @@ class Pagination(object):
                 last = num
 
 
+class DownloadRateTracker(object):
+
+    def __init__(self):
+        self._current_download = None
+        self._current_download_last_downloaded = 0
+        self._last_sample_datetime = None
+        self._bps_this_sample = 0
+
+    def get_bps(self):
+        return self._bps_this_sample
+
+    def update_progress(self, download):
+        current_sample_datetime = datetime.datetime.now()
+        bytes_this_sample = 0
+        if download is None:
+            self._current_download = None
+            self._bps_this_sample = 0
+            self._last_sample_datetime = current_sample_datetime
+            return
+
+        if self._current_download != download:
+            if self._current_download is not None:
+                # record remaininng progress from the previous download
+                bytes_this_sample += self._current_download.get_size() - self._current_download_last_downloaded
+            self._current_download = download
+            self._current_download_last_downloaded = 0
+            self._last_sample_datetime = current_sample_datetime
+
+        bytes_this_sample += download.get_downloaded() - self._current_download_last_downloaded
+        time_delta = current_sample_datetime - self._last_sample_datetime
+        if bytes_this_sample == 0 or time_delta <= datetime.timedelta(seconds=0):
+            self._bps_this_sample = 0
+        else:
+            self._bps_this_sample = float(bytes_this_sample) / time_delta.total_seconds()
+        self._current_download = download
+        self._current_download_last_downloaded = download.get_downloaded()
+        self._last_sample_datetime = current_sample_datetime
+
+
 class WebInterface(object):
     def __init__(self, db_manager, download_manager):
         self.app = flask.Flask(__name__)
         self.db_manager = db_manager
         self.api_manager = APIManager(self.app, session=self.db_manager.get_db_session())
         self.download_manager = download_manager
+        self._rate_tracker = DownloadRateTracker()
 
         def include_datetime(result):
             print result
@@ -91,15 +132,26 @@ class WebInterface(object):
         return render_template("active.html")
 
     def _view_download_queue(self):
+        downloads = self.download_manager.get_downloads()
+        try:
+            if downloads[0].get_downloaded() > 0:
+                self._rate_tracker.update_progress(downloads[0])
+        except IndexError:
+            self._rate_tracker.update_progress(None)
+
         download_queue = {
+            "current_datetime": datetime.datetime.now(),  # use as basis for other calculations
+            "bps": self._rate_tracker.get_bps(),
             "downloads": []
         }
-        for download in self.download_manager.get_downloads():
+        for download in downloads:
             download_queue["downloads"].append(
                 {
                     "name": download.get_putio_file().name,
                     "size": download.get_size(),
                     "downloaded": download.get_downloaded(),
+                    "start_datetime": download.get_start_datetime(),
+                    "end_datetime": download.get_finish_datetime(),
                 }
             )
         return flask.jsonify(download_queue)

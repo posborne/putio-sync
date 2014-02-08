@@ -1,6 +1,7 @@
 from collections import deque
 import threading
 import time
+import datetime
 import putio
 import re
 import os
@@ -17,10 +18,8 @@ class Download(object):
         self._start_callbacks = set()
         self._completion_callbacks = set()
         self._downloaded = 0
-
-    def __cmp__(self, other):
-        return (isinstance(other, Download) and
-                self._putio_file.id == other.putio_file.id)
+        self._start_datetime = None
+        self._finish_datetime = None
 
     def _fire_progress_callbacks(self):
         for cb in list(self._progress_callbacks):
@@ -45,6 +44,12 @@ class Download(object):
 
     def get_size(self):
         return self._putio_file.size
+
+    def get_start_datetime(self):
+        return self._start_datetime
+
+    def get_finish_datetime(self):
+        return self._finish_datetime
 
     def add_start_callback(self, start_callback):
         """Add a callback to be called when there is new progress to report on a download
@@ -79,6 +84,7 @@ class Download(object):
         self._completion_callbacks.add(completion_callback)
 
     def perform_download(self, token):
+        self._start_datetime = datetime.datetime.now()
         self._fire_start_callbacks()
         putio_file = self.get_putio_file()
         dest = self.get_destination_directory()
@@ -109,6 +115,7 @@ class Download(object):
         if os.path.exists(final_path):
             os.remove(final_path)
         os.rename(download_path, download_path[:-5])  # same but without '.part'
+        self._finish_datetime = datetime.datetime.now()
         self._fire_completion_callbacks()
 
 
