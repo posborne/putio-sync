@@ -90,7 +90,7 @@
         } else if (bytes > MB) {
             return (bytes / MB).toFixed(2) + " MB";
         } else if (bytes > KB) {
-            return toFixed(bytes / KB).toFixed(2) + " KB";
+            return (bytes / KB).toFixed(2) + " KB";
         } else {
             return bytes + " B";
         }
