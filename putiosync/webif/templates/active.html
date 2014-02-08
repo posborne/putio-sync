@@ -39,8 +39,32 @@
         {% endraw %}
     </script>
 
+    <script id="recent-completed-template" type="text/x-handlebars-template">
+        {% raw %}
+        <table id="history_tbl" class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Size</th>
+                    <th>Name</th>
+                </tr>
+            </thead>
+            <tbody>
+            {{#each downloads}}
+                <tr>
+                    <td>{{id}}</td>
+                    <td>{{pretty_size}}</td>
+                    <td>{{name}}</td>
+                </tr>
+            {{/each}}
+            </tbody>
+        </table>
+        {% endraw %}
+    </script>
+
     <script type="text/javascript">
     var downloadTemplate = Handlebars.compile($("#download-template").html());
+    var recentlyCompletedTemplate = Handlebars.compile($("#recent-completed-template").html());
     var bpsData = [];
     var bps_window_seconds = 60 * 2;
     var bpsPlot = $.plot("#bps-plot-placeholder", [ [0] ], {
@@ -130,11 +154,16 @@
             download.pretty_size = prettify_bytes(download.size);
             download.pretty_downloaded = prettify_bytes(download.downloaded);
         });
+        $.each(data.recent, function(idx, record) {
+            record.pretty_size = prettify_bytes(record.size);
+        });
+
         if (data.downloads.length > 0) {
             $("#progress").html(downloadTemplate({downloads: data.downloads}));
         } else {
             $("#progress").html("There are no downloads in the queue currently");
         }
+        $("#recently-completed").html(recentlyCompletedTemplate({downloads: data.recent}));
     }
 
     $(document).ready(function() {
@@ -149,6 +178,5 @@
     <div id="bps-plot-placeholder" style="width:100%;height: 100px;"></div>
     <div class="container" id="progress"></div>
     <h2>Recently Completed</h2>
-    <div class="container" id="recently_completed"></div>
-
+    <div class="container" id="recently-completed"></div>
 {% endblock %}

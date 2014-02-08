@@ -139,13 +139,9 @@ class WebInterface(object):
         except IndexError:
             self._rate_tracker.update_progress(None)
 
-        download_queue = {
-            "current_datetime": datetime.datetime.now(),  # use as basis for other calculations
-            "bps": self._rate_tracker.get_bps(),
-            "downloads": []
-        }
+        queued_downloads = []
         for download in downloads:
-            download_queue["downloads"].append(
+            queued_downloads.append(
                 {
                     "name": download.get_putio_file().name,
                     "size": download.get_size(),
@@ -154,6 +150,23 @@ class WebInterface(object):
                     "end_datetime": download.get_finish_datetime(),
                 }
             )
+
+        recent_completed = []
+        for record in self.db_manager.get_db_session().query(DownloadRecord).order_by(desc(DownloadRecord.id)).limit(20):
+            recent_completed.append(
+                {
+                    "id": record.id,
+                    "name": record.name,
+                    "size": record.size,
+                }
+            )
+
+        download_queue = {
+            "current_datetime": datetime.datetime.now(),  # use as basis for other calculations
+            "bps": self._rate_tracker.get_bps(),
+            "downloads": queued_downloads,
+            "recent": recent_completed
+        }
         return flask.jsonify(download_queue)
 
     def _view_history(self, page=1):
