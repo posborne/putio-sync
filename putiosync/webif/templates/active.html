@@ -4,8 +4,40 @@
     .progress {
         height: 20px;
     }
+
+    .download {
+        background: #f1f1f1;
+            -webkit-border-radius: 5px;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        padding-left: 15px;
+        padding-right: 15px;
+        padding-top: 10px;
+    }
     </style>
+
+    <script id="download-template" type="text/x-handlebars-template">
+        {% raw %}
+        {{#each downloads}}
+        <div class="row download">
+           <p>{{name}} ({{pretty_size}})</p>
+           {{#if is_active}}
+           <p><b>Downloaded:</b> {{pretty_downloaded}} ({{pretty_percent_complete}})</p>
+           <div class="progress progress-striped">
+             <div class="progress-bar progress-bar-info"
+                  role="progressbar"
+                  style="width: {{percent_complete}}%"></div>
+           </div>
+           {{/if}}
+        </div>
+        {{/each}}
+        {% endraw %}
+    </script>
+
     <script type="text/javascript">
+    var downloadTemplate = Handlebars.compile($("#download-template").html());
     function updateQueueProgress() {
         $.ajax({
             url: "/download_queue",
@@ -14,24 +46,32 @@
         })
     }
 
+    function prettify_bytes(bytes) {
+        var GB = 1024 * 1024 * 1024;
+        var MB = 1024 * 1024;
+        var KB = 1024;
+        if (bytes > GB) {
+            return (bytes / GB).toFixed(2) + " GB";
+        } else if (bytes > MB) {
+            return (bytes / MB).toFixed(2) + " MB";
+        } else if (bytes > KB) {
+            return toFixed(bytes / KB).toFixed(2) + " KB";
+        } else {
+            return bytes + " B";
+        }
+    }
+
     function processQueueProgressUpdate(data) {
-        console.log(data);
-        $("#progress").html("");
         $.each(data.downloads, function(idx, download) {
-            $download = $("<div class='row'><p>" + download.name + "</p></div>");
             if (download.downloaded > 0) {
-                $progress = $(
-                        "<div class='progress progress-striped'>" +
-                          "<div class='progress-bar progress-bar-info'" +
-                                "role='progressbar' " +
-                                "style='width: " + (download.downloaded / download.size) * 100 + "%; height: 80px'>" +
-                          "</div>" +
-                        "</div>"
-                )
-                $download.append($progress);
+                download.is_active = true;
             }
-            $("#progress").append($download);
+            download.percent_complete = (download.downloaded / download.size) * 100;
+            download.pretty_percent_complete = download.percent_complete.toFixed(2) + "%";
+            download.pretty_size = prettify_bytes(download.size);
+            download.pretty_downloaded = prettify_bytes(download.downloaded);
         });
+        $("#progress").html(downloadTemplate({downloads: data.downloads}));
     }
 
     $(document).ready(function() {
