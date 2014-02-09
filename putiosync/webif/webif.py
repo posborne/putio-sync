@@ -8,6 +8,9 @@ from putiosync.dbmodel import DownloadRecord
 from flask import render_template
 from sqlalchemy import desc, func
 
+APPLICATION_HOST = "127.0.0.1"
+APPLICATION_PORT = 7001  # avoid conflict with default flask port
+
 
 class Pagination(object):
 
@@ -178,4 +181,6 @@ class WebInterface(object):
                                history=Pagination(downloads, page, per_page=100))
 
     def run(self):
-        self.app.run()
+        import webbrowser
+        webbrowser.open("http://localhost:{}/".format(APPLICATION_PORT))
+        self.app.run(APPLICATION_HOST, APPLICATION_PORT)
