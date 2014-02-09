@@ -9,7 +9,7 @@
 </div>
 
 <script type="text/javascript">
-    var pat = new RegExp("#token=(.*)");
+    var pat = new RegExp("#access_token=(.*)");
     var href = window.location.href;
     var match = href.match(pat);
     var token = "Not Found"
