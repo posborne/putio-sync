@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.WARN,
 logger = logging.getLogger("putiosync")
 
 
-CLIENT_ID = 6017
+CLIENT_ID = 1067
 HOME_DIR = os.path.expanduser("~")
 SETTINGS_DIR = os.path.join(HOME_DIR, ".putiosync")
 SYNC_FILE = os.path.join(SETTINGS_DIR, "putiosync.json")
