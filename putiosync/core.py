@@ -112,7 +112,7 @@ class PutioSynchronizer(object):
         return matching_rec_exists
 
     def _record_downloaded(self, putio_file):
-        filename = putio_file.encode('ascii', 'ignore')
+        filename = putio_file.name.encode('ascii', 'ignore')
         matching_rec_exists = self._db_manager.get_db_session().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         if not matching_rec_exists:
             download_record = DownloadRecord(
