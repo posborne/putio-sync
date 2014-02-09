@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import putiosync
 
 __author__ = 'Paul Osborne'
@@ -21,7 +21,7 @@ setup(
     author_email='osbpau@gmail.com',
     url="http://posborne.github.io/putio-sync/",
     license='MIT',
-    packages=['putiosync'],
+    packages=find_packages(),
     entry_points={'console_scripts': ['putiosync=putiosync.frontend:main']},
     install_requires=get_requirements(),
     classifiers=[

@@ -17,7 +17,7 @@ def parse_arguments():
         help="Keep files on put.io; do not automatically delete")
     parser.add_argument(
         "-p", "--poll-frequency",
-        default=60,
+        default=60 * 3,
         type=int,
         help="Polling frequency in seconds (default: 1 minute)",
     )

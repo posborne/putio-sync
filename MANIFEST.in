@@ -1,2 +1,4 @@
 include requirements.txt
 include LICENSE
+recursive-include putiosync/webif/static *.html *.css *.js
+recursive-include putiosync/webif/templates *.html
