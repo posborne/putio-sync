@@ -167,8 +167,13 @@ class PutioSynchronizer(object):
             target_dir = os.path.join(self._download_directory, relpath)
             self._do_queue_download(putio_file, target_dir, delete_after_download=(not self._keep_files))
         else:
-            for child in putio_file.dir():
-                self._queue_download(child, os.path.join(relpath, putio_file.name), level + 1)
+            children = putio_file.dir()
+            if not children:
+                # this is a directory with no children, it must be destroyed
+                putio_file.delete()
+            else:
+                for child in children:
+                    self._queue_download(child, os.path.join(relpath, putio_file.name), level + 1)
 
     def _perform_single_check(self):
         try:
