@@ -1,0 +1,22 @@
+<html>
+<head>
+</head>
+<body>
+<h1>putio-sync Token Flow</h1>
+<div class="token-container">
+    Your API Token is:
+    <div id="token" style="font-size: 64px; font-family: 'Consolas', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace"></div>
+</div>
+
+<script type="text/javascript">
+    var pat = new RegExp("#token=(.*)");
+    var href = window.location.href;
+    var match = href.match(pat);
+    var token = "Not Found"
+    if (match) {
+        var token = match[1];
+    }
+    document.getElementById("token").innerHTML = token;
+</script>
+</body>
+</html>
