@@ -105,19 +105,21 @@ class PutioSynchronizer(object):
         return (putio_file.content_type == 'application/x-directory')
 
     def _already_downloaded(self, putio_file, dest):
-        if os.path.exists(os.path.join(dest, "{}".format(putio_file.name))):
+        filename = putio_file.name.encode('ascii', 'ignore')
+        if os.path.exists(os.path.join(dest, "{}".format(filename))):
             return True  # TODO: check size and/or crc32 checksum?
         matching_rec_exists = self._db_manager.get_db_session().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         return matching_rec_exists
 
     def _record_downloaded(self, putio_file):
+        filename = putio_file.encode('ascii', 'ignore')
         matching_rec_exists = self._db_manager.get_db_session().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         if not matching_rec_exists:
             download_record = DownloadRecord(
                 file_id=putio_file.id,
                 size=putio_file.size,
                 timestamp=datetime.datetime.now(),
-                name=putio_file.name)
+                name=filename)
             self._db_manager.get_db_session().add(download_record)
             self._db_manager.get_db_session().commit()
         else:

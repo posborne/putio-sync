@@ -88,12 +88,7 @@ class Download(object):
         self._fire_start_callbacks()
         putio_file = self.get_putio_file()
         dest = self.get_destination_directory()
-
-        # Helper to get the filename in the form that we need for the full multi-segment download
-        response = putio_file.client.request('/files/%s/download' % putio_file.id, raw=True, stream=True)
-        filename = re.match('attachment; filename=(.*)',
-                            response.headers['content-disposition']).groups()[0].strip('"')
-        response.close()
+        filename = putio_file.name.encode('ascii', 'ignore')
 
         final_path = os.path.join(dest, filename)
         download_path = "{}.part".format(final_path)
