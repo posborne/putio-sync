@@ -119,6 +119,7 @@ class DownloadManager(threading.Thread):
 
     def __init__(self, token):
         threading.Thread.__init__(self, name="DownloadManager")
+        self.setDaemon(True)
         self._token = token
         self._download_queue_lock = threading.RLock()  # also used for locking calllback lists
         self._download_queue = deque()
