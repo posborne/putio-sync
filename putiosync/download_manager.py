@@ -39,6 +39,13 @@ class Download(object):
     def get_destination_directory(self):
         return self._destination_directory
 
+    def get_filename(self):
+        return self.get_putio_file().name.encode('ascii', 'ignore')
+
+    def get_destination_path(self):
+        return os.path.join(os.path.abspath(self._destination_directory),
+                            self.get_filename())
+
     def get_downloaded(self):
         return self._downloaded
 
@@ -88,7 +95,7 @@ class Download(object):
         self._fire_start_callbacks()
         putio_file = self.get_putio_file()
         dest = self.get_destination_directory()
-        filename = putio_file.name.encode('ascii', 'ignore')
+        filename = self.get_filename()
 
         final_path = os.path.join(dest, filename)
         download_path = "{}.part".format(final_path)
@@ -149,6 +156,17 @@ class DownloadManager(threading.Thread):
             download.add_completion_callback(self._build_callback(self._completion_callbacks))
             self._download_queue.append(download)
 
+    def add_download_start_progress(self, start_callback):
+        """Add a callback to be called whenever a new download is started
+
+        The callback will be called as follows::
+
+            start_callback(download)
+
+        """
+        with self._start_callbacks:
+            self._start_callbacks.add(start_callback)
+
     def add_download_progress_callback(self, progress_callback):
         """Add a callback to be called when there is new progress to report on a download
 
@@ -161,17 +179,6 @@ class DownloadManager(threading.Thread):
         """
         with self._download_queue_lock:
             self._progress_callbacks.add(progress_callback)
-
-    def add_download_start_progress(self, start_callback):
-        """Add a callback to be called whenever a new download is started
-
-        The callback will be called as follows::
-
-            start_callback(download)
-
-        """
-        with self._start_callbacks:
-            self._start_callbacks.add(start_callback)
 
     def add_download_completion_callback(self, completion_callback):
         """Add a callback to be called whenever a download completes
