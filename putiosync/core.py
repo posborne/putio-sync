@@ -7,6 +7,7 @@ import collections
 import json
 import datetime
 import logging
+import traceback
 import progressbar
 from putiosync import multipart_downloader
 from putiosync.dbmodel import DBModelBase, DownloadRecord
@@ -156,7 +157,11 @@ class PutioSynchronizer(object):
                 # and write a record of the download to the database
                 self._record_downloaded(putio_file)
                 if delete_after_download:
-                    putio_file.delete()
+                    try:
+                        putio_file.delete()
+                    except:
+                        print "Error deleting file... assuming all is well but may require manual cleanup"
+                        traceback.print_exc()
 
             download.add_start_callback(start_callback)
             download.add_progress_callback(progress_callback)
@@ -183,7 +188,7 @@ class PutioSynchronizer(object):
             for putio_file in self._putio_client.File.list():
                 self._queue_download(putio_file)
         except:
-            logger.exception("Unexpected error while performing check/download")
+            logger.error("Unexpected error while performing check/download")
 
     def _wait_until_downloads_complete(self):
         while not self._download_manager.is_empty():

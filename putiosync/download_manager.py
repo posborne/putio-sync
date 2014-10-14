@@ -99,6 +99,15 @@ class Download(object):
 
         final_path = os.path.join(dest, filename)
         download_path = "{}.part".format(final_path)
+
+        # ensure the path into which the download is going to be donwloaded exists. We know
+        # that the 'dest' directory exists but in some cases the filename on put.io may
+        # have directories within it (for an archive, as an example).  In addition, some
+        # post-processing may delete directories, so let's just recreate the directory
+        if not os.path.exists(os.path.dirname(download_path)):
+            os.makedirs(os.path.dirname(download_path))
+
+        success = False
         with open(download_path, 'wb') as f:
             def transfer_callback(offset, chunk):
                 self._downloaded += len(chunk)
@@ -107,18 +116,21 @@ class Download(object):
                 f.flush()
                 self._fire_progress_callbacks()
 
-            multipart_downloader.download(
+            success = multipart_downloader.download(
                 putio.BASE_URL + '/files/{}/download'.format(putio_file.id),
                 self.get_size(),
                 transfer_callback,
                 params={'oauth_token': token})
 
         # download to part file is complete.  Now move to its final destination
-        if os.path.exists(final_path):
-            os.remove(final_path)
-        os.rename(download_path, download_path[:-5])  # same but without '.part'
-        self._finish_datetime = datetime.datetime.now()
-        self._fire_completion_callbacks()
+        if success:
+            if os.path.exists(final_path):
+                os.remove(final_path)
+            os.rename(download_path, download_path[:-5])  # same but without '.part'
+            self._finish_datetime = datetime.datetime.now()
+            self._fire_completion_callbacks()
+
+        return success
 
 
 class DownloadManager(threading.Thread):
@@ -209,5 +221,10 @@ class DownloadManager(threading.Thread):
             except IndexError:
                 time.sleep(0.5)  # don't busily spin
             else:
-                download.perform_download(self._token)
+                success = download.perform_download(self._token)
                 self._download_queue.popleft()
+                if not success:
+                    # re-add to the end of the queue for retry but do not keep any state that may have been
+                    # associated with the failed download
+                    self.add_download(Download(download.get_putio_file(),
+                                               download.get_destination_path()))
