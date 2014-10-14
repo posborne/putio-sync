@@ -118,8 +118,9 @@ def download(url, size, transfer_callback, num_workers=4, segment_size_bytes=200
     for _ in xrange(num_workers):
         work_queue.put(None)
 
+    error_occurred = False
     workers_completed = 0
-    while True:
+    while not error_occurred:
         msg = completion_queue.get()
         if msg is None:  # a worker just finished
             workers_completed += 1
@@ -127,7 +128,17 @@ def download(url, size, transfer_callback, num_workers=4, segment_size_bytes=200
                 break
         else:
             offset, chunk = msg
-            transfer_callback(offset, chunk)
+            try:
+                transfer_callback(offset, chunk)
+            except:
+                error_occurred = True
+
+    if error_occurred:
+        for worker in workers:
+            worker.stop()  # halt now
 
     for worker in workers:
         worker.join()
+
+    success = not error_occurred
+    return success
