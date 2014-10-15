@@ -1,4 +1,4 @@
-"""Implemenmtation foa multi-segment file downloader
+"""Implementation for multi-segment file downloader
 
 This can sometimes significiantly increase the overall speed of a download
 and is a technique commonly used by download managers (like DownThemAll)
