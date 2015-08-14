@@ -24,6 +24,7 @@ setup(
     packages=find_packages(),
     entry_points={'console_scripts': ['putiosync=putiosync.frontend:main']},
     install_requires=get_requirements(),
+    include_package_data=True,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
