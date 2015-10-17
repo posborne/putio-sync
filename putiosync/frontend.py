@@ -3,8 +3,10 @@ import shlex
 import sys
 import threading
 import subprocess
+import putio
 from putiosync.core import TokenManager, PutioSynchronizer, DatabaseManager
 from putiosync.download_manager import DownloadManager
+from putiosync.watcher import TorrentWatcher
 from putiosync.webif.webif import WebInterface
 
 __author__ = 'Paul Osborne'
@@ -16,7 +18,8 @@ def parse_arguments():
         "-k", "--keep",
         action="store_true",
         default=False,
-        help="Keep files on put.io; do not automatically delete")
+        help="Keep files on put.io; do not automatically delete"
+    )
     parser.add_argument(
         "-p", "--poll-frequency",
         default=60 * 3,
@@ -33,6 +36,16 @@ def parse_arguments():
             "just been completed as an argument.  "
             "Example: putio-sync -c 'python /path/to/postprocess.py' /path/to/Downloads"
         ),
+    )
+    parser.add_argument(
+        "-w", "--watch-directory",
+        default=None,
+        type=str,
+        help=(
+            "Directory to watch for torrent or magnet files.  If this option is"
+            "present and new files are added, they will be added to put.io and"
+            "automatically downloaded by the daemon when complete."
+        )
     )
     parser.add_argument(
         "download_directory",
@@ -63,15 +76,21 @@ def main():
     token_manager.save_token(token)
 
     # Let's start syncing!
+    putio_client = putio.Client(token)
     db_manager = DatabaseManager()
     download_manager = DownloadManager(token=token)
     if args.post_process_command is not None:
         download_manager.add_download_completion_callback(
             build_postprocess_download_completion_callback(args.post_process_command))
+
+    if args.watch_directory is not None:
+        torrent_watcher = TorrentWatcher(args.watch_directory, putio_client)
+        torrent_watcher.start()
+
     download_manager.start()
     synchronizer = PutioSynchronizer(
-        token=token,
         download_directory=args.download_directory,
+        putio_client=putio_client,
         db_manager=db_manager,
         download_manager=download_manager,
         keep_files=args.keep,

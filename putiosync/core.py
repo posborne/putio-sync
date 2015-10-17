@@ -93,11 +93,10 @@ class TokenManager(object):
 class PutioSynchronizer(object):
     """Object encapsulating core synchronization logic and state"""
 
-    def __init__(self, token, download_directory, db_manager, download_manager, keep_files=False, poll_frequency=60):
-        self._token = token
+    def __init__(self, download_directory, putio_client, db_manager, download_manager, keep_files=False, poll_frequency=60):
+        self._putio_client = putio_client
         self._download_directory = download_directory
         self._db_manager = db_manager
-        self._putio_client = putio.Client(token)
         self._poll_frequency = poll_frequency
         self._keep_files = keep_files
         self._download_manager = download_manager
