@@ -1,3 +1,4 @@
+import logging
 from math import ceil
 import datetime
 
@@ -6,14 +7,16 @@ import flask.ext.restless
 from flask.ext.restless import APIManager
 from putiosync.dbmodel import DownloadRecord
 from flask import render_template
+from putiosync.webif.transmissionrpc import TransmissionRPCServer
 from sqlalchemy import desc, func
 
 APPLICATION_HOST = "127.0.0.1"
 APPLICATION_PORT = 7001  # avoid conflict with default flask port
 
+logger = logging.getLogger("putiosync.webif")
+
 
 class Pagination(object):
-
     # NOTE: pagination is a feature that is included with flask-sqlalchemy, but after
     #   working with it initially, it was far too hacky to use this in combination
     #   with a model that wasn't declared with the flask-sqlalchemy meta base.  Since
@@ -46,8 +49,8 @@ class Pagination(object):
         last = 0
         for num in xrange(1, self.pages + 1):
             if (num <= left_edge or
-                (self.page - left_current - 1 < num < self.page + right_current) or
-                num > self.pages - right_edge):
+                    (self.page - left_current - 1 < num < self.page + right_current) or
+                        num > self.pages - right_edge):
                 if last + 1 != num:
                     yield None
                 yield num
@@ -55,7 +58,6 @@ class Pagination(object):
 
 
 class DownloadRateTracker(object):
-
     def __init__(self):
         self._current_download = None
         self._current_download_last_downloaded = 0
@@ -99,7 +101,10 @@ class WebInterface(object):
         self.db_manager = db_manager
         self.api_manager = APIManager(self.app, session=self.db_manager.get_db_session())
         self.download_manager = download_manager
+        self.transmission_rpc_server = TransmissionRPCServer()
         self._rate_tracker = DownloadRateTracker()
+
+        self.app.logger.setLevel(logging.DEBUG)
 
         def include_datetime(result):
             print result
@@ -120,6 +125,8 @@ class WebInterface(object):
         self.app.add_url_rule("/history", view_func=self._view_history)
         self.app.add_url_rule("/download_queue", view_func=self._view_download_queue)
         self.app.add_url_rule("/history/page/<int:page>", view_func=self._view_history)
+        self.app.add_url_rule("/transmission/rpc", methods=['POST', ],
+                              view_func=self.transmission_rpc_server.handle_request)
 
     def _pretty_size(self, size):
         if size > 1024 * 1024 * 1024:
@@ -155,7 +162,8 @@ class WebInterface(object):
             )
 
         recent_completed = []
-        for record in self.db_manager.get_db_session().query(DownloadRecord).order_by(desc(DownloadRecord.id)).limit(20):
+        for record in self.db_manager.get_db_session().query(DownloadRecord).order_by(desc(DownloadRecord.id)).limit(
+                20):
             recent_completed.append(
                 {
                     "id": record.id,

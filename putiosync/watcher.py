@@ -1,5 +1,4 @@
 import logging
-import time
 import os
 
 from watchdog.observers import Observer
