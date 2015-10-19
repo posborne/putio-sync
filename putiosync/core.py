@@ -101,6 +101,9 @@ class PutioSynchronizer(object):
         self._keep_files = keep_files
         self._download_manager = download_manager
 
+    def get_download_directory(self):
+        return self._download_directory
+
     def _is_directory(self, putio_file):
         return (putio_file.content_type == 'application/x-directory')
 

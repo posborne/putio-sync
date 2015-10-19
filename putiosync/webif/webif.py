@@ -96,12 +96,14 @@ class DownloadRateTracker(object):
 
 
 class WebInterface(object):
-    def __init__(self, db_manager, download_manager):
+    def __init__(self, db_manager, download_manager, putio_client, synchronizer):
         self.app = flask.Flask(__name__)
+        self.synchronizer = synchronizer
         self.db_manager = db_manager
         self.api_manager = APIManager(self.app, session=self.db_manager.get_db_session())
         self.download_manager = download_manager
-        self.transmission_rpc_server = TransmissionRPCServer()
+        self.putio_client = putio_client
+        self.transmission_rpc_server = TransmissionRPCServer(putio_client, self.synchronizer)
         self._rate_tracker = DownloadRateTracker()
 
         self.app.logger.setLevel(logging.DEBUG)
@@ -125,7 +127,7 @@ class WebInterface(object):
         self.app.add_url_rule("/history", view_func=self._view_history)
         self.app.add_url_rule("/download_queue", view_func=self._view_download_queue)
         self.app.add_url_rule("/history/page/<int:page>", view_func=self._view_history)
-        self.app.add_url_rule("/transmission/rpc", methods=['POST', ],
+        self.app.add_url_rule("/transmission/rpc", methods=['POST', 'GET', ],
                               view_func=self.transmission_rpc_server.handle_request)
 
     def _pretty_size(self, size):
