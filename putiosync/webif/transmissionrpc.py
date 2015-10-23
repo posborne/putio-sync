@@ -86,7 +86,7 @@ class TransmissionTransferProxy(object):
         }
 
     def render_json(self, fields):
-        return {f: self._field_providers.get(f, lambda: None) for f in fields}
+        return {f: self._field_providers.get(f, lambda: None)() for f in fields}
 
 
 class TransmissionRPCServer(object):

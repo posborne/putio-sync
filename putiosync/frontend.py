@@ -98,7 +98,7 @@ def main():
     t = threading.Thread(target=synchronizer.run_forever)
     t.setDaemon(True)
     t.start()
-    web_interface = WebInterface(db_manager, download_manager, putio_client, synchronizer
+    web_interface = WebInterface(db_manager, download_manager, putio_client, synchronizer)
     web_interface.run()
     return 0
 

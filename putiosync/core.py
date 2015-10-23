@@ -22,7 +22,7 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import sessionmaker
 
 
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.WARN,
                     format='%(asctime)s | %(name)-12s | %(levelname)-8s | %(message)s')
 logger = logging.getLogger("putiosync")
 
