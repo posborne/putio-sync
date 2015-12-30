@@ -83,7 +83,7 @@ class TransmissionTransferProxy(object):
             "totalSize": lambda: self.transfer.size,
             "leftUntilDone": lambda: self.transfer.size - self.transfer.downloaded,
             "errorString": lambda : '' if self.transfer.error_message is None else self.transfer.error_message,
-            "isFinished": lambda : 1 if self.transfer.downloaded == 1 else False,
+            "isFinished": lambda : self.synchronizer.isAlreadyDownloaded(self.transfer),
             "eta": lambda : 0 if self.transfer.estimated_time is None else self.transfer.estimated_time
         }
 
@@ -112,6 +112,7 @@ class TransmissionRPCServer(object):
             "session-get": self._session_get,
             "torrent-get": self._torrent_get,
             "torrent-add": self._torrent_add,
+            "torrent-remove": self._torrent_remove,
         }
 
     def _session_get(self):
@@ -126,6 +127,12 @@ class TransmissionRPCServer(object):
             self._putio_client.Transfer.add_torrent(filename)
         else:
             self._putio_client.Transfer.add_url(filename)
+        return {}
+
+    def _torrent_remove(self, ids):
+        for id in ids:
+            file = self._putio_client.File.get(id)
+            file.delete()
         return {}
 
     def _torrent_get(self, fields):
