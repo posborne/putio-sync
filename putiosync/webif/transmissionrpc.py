@@ -125,7 +125,7 @@ class TransmissionRPCServer(object):
             "torrent-remove": self._torrent_remove,
         }
 
-    def _session_get(self):
+    def _session_get(self, arguments):
         # Many more are supported by real client, this is enough for Sonarr
         return {
             "rpc-version": 15,
@@ -133,29 +133,29 @@ class TransmissionRPCServer(object):
             "download-dir": self._synchronizer.get_download_directory()
         }
 
-    def _session_stats(self):
+    def _session_stats(self, arguments):
         return {}
 
-    def _torrent_add(self, filename):
-        if os.path.isfile(filename):
-            self._putio_client.Transfer.add_torrent(filename)
+    def _torrent_add(self, arguments):
+        if os.path.isfile(arguments["filename"]):
+            self._putio_client.Transfer.add_torrent(arguments["filename"])
         else:
-            self._putio_client.Transfer.add_url(filename)
+            self._putio_client.Transfer.add_url(arguments["filename"])
         return {}
 
-    def _torrent_remove(self, ids):
-        for id in ids:
+    def _torrent_remove(self, arguments):
+        for id in arguments["ids"]:
             file = self._putio_client.File.get(id)
             file.delete()
         return {}
 
-    def _torrent_set(self):
+    def _torrent_set(self, arguments):
         return {}
 
-    def _torrent_get(self, fields):
+    def _torrent_get(self, arguments):
         transfers = self._putio_client.Transfer.list()
         transmission_transfers = [TransmissionTransferProxy(t, self._synchronizer) for t in transfers]
-        return {"torrents": [t.render_json(fields) for t in transmission_transfers]}
+        return {"torrents": [t.render_json(arguments["fields"]) for t in transmission_transfers]}
 
     def handle_request(self):
         # If GET, just provide X-Transmission-Session-Id with HTTP 409
@@ -171,7 +171,7 @@ class TransmissionRPCServer(object):
             logger.info("Method: %r, Arguments: %r", method, arguments)
             logger.info("%r", flask.request.headers)
             try:
-                result = self.methods[method](**arguments)
+                result = self.methods[method](arguments)
             except Exception, e:
                 response = {
                     "result": "error",
