@@ -118,8 +118,10 @@ class TransmissionRPCServer(object):
         self._session_id = str(uuid.uuid1())
         self.methods = {
             "session-get": self._session_get,
+            "session-stats": self._session_stats,
             "torrent-get": self._torrent_get,
             "torrent-add": self._torrent_add,
+            "torrent-set": self._torrent_set,
             "torrent-remove": self._torrent_remove,
         }
 
@@ -128,7 +130,11 @@ class TransmissionRPCServer(object):
         return {
             "rpc-version": 15,
             "version": "2.84 (putiosync)",
+            "download-dir": self._synchronizer.get_download_directory()
         }
+
+    def _session_stats(self):
+        return {}
 
     def _torrent_add(self, filename):
         if os.path.isfile(filename):
@@ -141,6 +147,9 @@ class TransmissionRPCServer(object):
         for id in ids:
             file = self._putio_client.File.get(id)
             file.delete()
+        return {}
+
+    def _torrent_set(self):
         return {}
 
     def _torrent_get(self, fields):
