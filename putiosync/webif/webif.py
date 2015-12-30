@@ -10,7 +10,7 @@ from flask import render_template
 from putiosync.webif.transmissionrpc import TransmissionRPCServer
 from sqlalchemy import desc, func
 
-APPLICATION_HOST = "127.0.0.1"
+APPLICATION_HOST = "0.0.0.0"
 APPLICATION_PORT = 7001  # avoid conflict with default flask port
 
 logger = logging.getLogger("putiosync.webif")
