@@ -84,7 +84,7 @@ class TransmissionTransferProxy(object):
             "leftUntilDone": lambda: self.transfer.size - self.transfer.downloaded,
             "errorString": lambda : '' if self.transfer.error_message is None else self.transfer.error_message,
             "isFinished": lambda : 1 if self.transfer.downloaded == 1 else False,
-            "eta": lambda : -1 if self.transfer.estimated_time is None else self.transfer.estimated_time
+            "eta": lambda : 0 if self.transfer.estimated_time is None else self.transfer.estimated_time
         }
 
     def render_json(self, fields):
