@@ -15,6 +15,14 @@ def map_status(status):
         "COMPLETED": 6,  # seeding
     }.get(status, 3)  # default: queued
 
+def geteta(eta):
+    if eta is None:
+        return 0
+    else:
+        if eta < 0:
+            return 0
+        else:
+            return eta
 
 class TransmissionTransferProxy(object):
     """Wrap a put.io transfer and map to Transmission torrent iface
@@ -84,7 +92,7 @@ class TransmissionTransferProxy(object):
             "leftUntilDone": lambda: self.transfer.size - self.transfer.downloaded,
             "errorString": lambda : '' if self.transfer.error_message is None else self.transfer.error_message,
             "isFinished": lambda : 1 if self.transfer.downloaded == 1 else False,
-            "eta": lambda : 0 if self.transfer.estimated_time is None else self.transfer.estimated_time
+            "eta": lambda : geteta(self.transfer.estimated_time)
         }
 
     def render_json(self, fields):
