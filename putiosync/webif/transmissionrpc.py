@@ -91,7 +91,7 @@ class TransmissionTransferProxy(object):
             "totalSize": lambda: self.transfer.size,
             "leftUntilDone": lambda: self.transfer.size - self.transfer.downloaded,
             "errorString": lambda : '' if self.transfer.error_message is None else self.transfer.error_message,
-            "isFinished": lambda : 1 if self.transfer.downloaded == 1 else False,
+            "isFinished": lambda : self.synchronizer.isAlreadyDownloaded(self.transfer),
             "eta": lambda : geteta(self.transfer.estimated_time)
         }
 
@@ -118,28 +118,44 @@ class TransmissionRPCServer(object):
         self._session_id = str(uuid.uuid1())
         self.methods = {
             "session-get": self._session_get,
+            "session-stats": self._session_stats,
             "torrent-get": self._torrent_get,
             "torrent-add": self._torrent_add,
+            "torrent-set": self._torrent_set,
+            "torrent-remove": self._torrent_remove,
         }
 
-    def _session_get(self):
+    def _session_get(self, arguments):
         # Many more are supported by real client, this is enough for Sonarr
         return {
             "rpc-version": 15,
             "version": "2.84 (putiosync)",
+            "download-dir": self._synchronizer.get_download_directory()
         }
 
-    def _torrent_add(self, filename):
-        if os.path.isfile(filename):
-            self._putio_client.Transfer.add_torrent(filename)
-        else:
-            self._putio_client.Transfer.add_url(filename)
+    def _session_stats(self, arguments):
         return {}
 
-    def _torrent_get(self, fields):
+    def _torrent_add(self, arguments):
+        if os.path.isfile(arguments["filename"]):
+            self._putio_client.Transfer.add_torrent(arguments["filename"])
+        else:
+            self._putio_client.Transfer.add_url(arguments["filename"])
+        return {}
+
+    def _torrent_remove(self, arguments):
+        for id in arguments["ids"]:
+            file = self._putio_client.File.get(id)
+            file.delete()
+        return {}
+
+    def _torrent_set(self, arguments):
+        return {}
+
+    def _torrent_get(self, arguments):
         transfers = self._putio_client.Transfer.list()
         transmission_transfers = [TransmissionTransferProxy(t, self._synchronizer) for t in transfers]
-        return {"torrents": [t.render_json(fields) for t in transmission_transfers]}
+        return {"torrents": [t.render_json(arguments["fields"]) for t in transmission_transfers]}
 
     def handle_request(self):
         # If GET, just provide X-Transmission-Session-Id with HTTP 409
@@ -155,7 +171,7 @@ class TransmissionRPCServer(object):
             logger.info("Method: %r, Arguments: %r", method, arguments)
             logger.info("%r", flask.request.headers)
             try:
-                result = self.methods[method](**arguments)
+                result = self.methods[method](arguments)
             except Exception, e:
                 response = {
                     "result": "error",
