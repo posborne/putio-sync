@@ -91,7 +91,7 @@ class TransmissionTransferProxy(object):
             "totalSize": lambda: self.transfer.size,
             "leftUntilDone": lambda: self.transfer.size - self.transfer.downloaded,
             "errorString": lambda : '' if self.transfer.error_message is None else self.transfer.error_message,
-            "isFinished": lambda : self.synchronizer.isAlreadyDownloaded(self.transfer),
+            "isFinished": lambda : self.synchronizer.is_already_downloaded(self.transfer),
             "eta": lambda : geteta(self.transfer.estimated_time)
         }
 

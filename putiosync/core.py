@@ -114,7 +114,7 @@ class PutioSynchronizer(object):
         matching_rec_exists = self._db_manager.get_db_session().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         return matching_rec_exists
 
-    def isAlreadyDownloaded(self, putio_file):
+    def is_already_downloaded(self, putio_file):
         return self._already_downloaded(putio_file, self._download_directory)
 
     def _record_downloaded(self, putio_file):
