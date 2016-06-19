@@ -15,6 +15,14 @@ def map_status(status):
         "COMPLETED": 6,  # seeding
     }.get(status, 3)  # default: queued
 
+def geteta(eta):
+    if eta is None:
+        return 0
+    else:
+        if eta < 0:
+            return 0
+        else:
+            return eta
 
 class TransmissionTransferProxy(object):
     """Wrap a put.io transfer and map to Transmission torrent iface
@@ -82,7 +90,9 @@ class TransmissionTransferProxy(object):
             "status": lambda: map_status(self.transfer.status),
             "totalSize": lambda: self.transfer.size,
             "leftUntilDone": lambda: self.transfer.size - self.transfer.downloaded,
-            "errorString": lambda: self.transfer.errorMessage,
+            "errorString": lambda : '' if self.transfer.error_message is None else self.transfer.error_message,
+            "isFinished": lambda : self.synchronizer.is_already_downloaded(self.transfer),
+            "eta": lambda : geteta(self.transfer.estimated_time)
         }
 
     def render_json(self, fields):
@@ -108,25 +118,41 @@ class TransmissionRPCServer(object):
         self._session_id = str(uuid.uuid1())
         self.methods = {
             "session-get": self._session_get,
+            "session-stats": self._session_stats,
             "torrent-get": self._torrent_get,
             "torrent-add": self._torrent_add,
+            "torrent-set": self._torrent_set,
+            "torrent-remove": self._torrent_remove,
         }
 
-    def _session_get(self):
+    def _session_get(self, **arguments):
         # Many more are supported by real client, this is enough for Sonarr
         return {
             "rpc-version": 15,
             "version": "2.84 (putiosync)",
+            "download-dir": self._synchronizer.get_download_directory()
         }
 
-    def _torrent_add(self, filename):
+    def _session_stats(self, **arguments):
+        return {}
+
+    def _torrent_add(self, filename, **arguments):
         if os.path.isfile(filename):
             self._putio_client.Transfer.add_torrent(filename)
         else:
             self._putio_client.Transfer.add_url(filename)
         return {}
 
-    def _torrent_get(self, fields):
+    def _torrent_remove(self, ids, **arguments):
+        for id in ids:
+            file = self._putio_client.File.get(id)
+            file.delete()
+        return {}
+
+    def _torrent_set(self, **arguments):
+        return {}
+
+    def _torrent_get(self, fields, **arguments):
         transfers = self._putio_client.Transfer.list()
         transmission_transfers = [TransmissionTransferProxy(t, self._synchronizer) for t in transfers]
         return {"torrents": [t.render_json(fields) for t in transmission_transfers]}
