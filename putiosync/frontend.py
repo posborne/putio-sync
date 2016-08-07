@@ -21,6 +21,12 @@ def parse_arguments():
         help="Keep files on put.io; do not automatically delete"
     )
     parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        default=False,
+        help="Prevent browser from launching on start."
+    )
+    parser.add_argument(
         "-p", "--poll-frequency",
         default=60 * 3,
         type=int,
@@ -98,7 +104,7 @@ def main():
     t = threading.Thread(target=synchronizer.run_forever)
     t.setDaemon(True)
     t.start()
-    web_interface = WebInterface(db_manager, download_manager, putio_client, synchronizer)
+    web_interface = WebInterface(db_manager, download_manager, putio_client, synchronizer, launch_browser=(not args.quiet))
     web_interface.run()
     return 0
 

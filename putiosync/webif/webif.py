@@ -96,7 +96,7 @@ class DownloadRateTracker(object):
 
 
 class WebInterface(object):
-    def __init__(self, db_manager, download_manager, putio_client, synchronizer):
+    def __init__(self, db_manager, download_manager, putio_client, synchronizer, launch_browser=False):
         self.app = flask.Flask(__name__)
         self.synchronizer = synchronizer
         self.db_manager = db_manager
@@ -104,6 +104,7 @@ class WebInterface(object):
         self.download_manager = download_manager
         self.putio_client = putio_client
         self.transmission_rpc_server = TransmissionRPCServer(putio_client, self.synchronizer)
+        self.launch_browser = launch_browser
         self._rate_tracker = DownloadRateTracker()
 
         self.app.logger.setLevel(logging.DEBUG)
@@ -191,6 +192,7 @@ class WebInterface(object):
                                history=Pagination(downloads, page, per_page=100))
 
     def run(self):
-        import webbrowser
-        webbrowser.open("http://localhost:{}/".format(APPLICATION_PORT))
+        if self.launch_browser:
+            import webbrowser
+            webbrowser.open("http://localhost:{}/".format(APPLICATION_PORT))
         self.app.run(APPLICATION_HOST, APPLICATION_PORT)
