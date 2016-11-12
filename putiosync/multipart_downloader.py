@@ -9,9 +9,8 @@ Also, it should be noted that this has been tested with downloads provided
 by put.io, but your mileage may vary for other servers.
 
 """
-import Queue
+from queue import Queue
 import threading
-from requests import Request
 import requests
 
 __author__ = "Paul Osborne"
@@ -90,14 +89,14 @@ def download(url, size, transfer_callback, num_workers=4, segment_size_bytes=200
     and data is the data for that chunk.
 
     """
-    work_queue = Queue.Queue()
-    completion_queue = Queue.Queue()
+    work_queue = Queue()
+    completion_queue = Queue()
 
     num_workers = min(num_workers, int(size / segment_size_bytes) + 1)
 
     # create workers and start them
     workers = [_MultiSegmentDownloadWorker(url, i + 1, work_queue, completion_queue, kwargs)
-               for i in xrange(num_workers)]
+               for i in range(num_workers)]
     for worker in workers:
         worker.start()
 
@@ -115,7 +114,7 @@ def download(url, size, transfer_callback, num_workers=4, segment_size_bytes=200
         work_queue.put(seg)
 
     # queue up one None for each worker to let it know that things are complete
-    for _ in xrange(num_workers):
+    for _ in range(num_workers):
         work_queue.put(None)
 
     error_occurred = False

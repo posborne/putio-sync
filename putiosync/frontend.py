@@ -63,7 +63,7 @@ def parse_arguments():
 
 def build_postprocess_download_completion_callback(postprocess_command):
     def download_completed(download):
-        print repr(postprocess_command)
+        print(repr(postprocess_command))
         args = shlex.split(postprocess_command)
         args.append(download.get_filename())
         subprocess.call(args, shell=True)
@@ -77,7 +77,7 @@ def main():
     token_manager = TokenManager()
     token = token_manager.get_token()
     while not token_manager.is_valid_token(token):
-        print "No valid token found!  Please provide one."
+        print("No valid token found!  Please provide one.")
         token = token_manager.obtain_token()
     token_manager.save_token(token)
 
