@@ -172,7 +172,7 @@ class TransmissionRPCServer(object):
             logger.info("%r", flask.request.headers)
             try:
                 result = self.methods[method](**arguments)
-            except Exception, e:
+            except Exception as e:
                 response = {
                     "result": "error",
                     "error_description": "%s" % e,

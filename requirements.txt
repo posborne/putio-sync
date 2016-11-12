@@ -7,4 +7,5 @@ sqlalchemy==0.9.1
 flask==0.10.1
 flask-restless==0.12.1
 flask-restful==0.2.11
+future==0.16.0
 watchdog==0.8.3

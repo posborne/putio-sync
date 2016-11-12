@@ -16,6 +16,7 @@ import re
 import webbrowser
 import time
 import os
+import sys
 import putio
 from sqlalchemy import create_engine, exists
 from sqlalchemy.orm import scoped_session
@@ -84,9 +85,13 @@ class TokenManager(object):
 
         """
         apptoken_url = "http://put.io/v2/oauth2/apptoken/{}".format(CLIENT_ID)
-        print "Opening {}".format(apptoken_url)
+        print("Opening {}".format(apptoken_url))
         webbrowser.open(apptoken_url)
-        token = raw_input("Enter token: ").strip()
+        if sys.version[0]=="2":
+            input=raw_input
+        else:
+            input=input
+        token = input("Enter token: ").strip()
         return token
 
 
@@ -149,7 +154,7 @@ class PutioSynchronizer(object):
             pbar = progressbar.ProgressBar(widgets=widgets, maxval=total)
 
             def start_callback(_download):
-                print "Downloading {}".format(putio_file)
+                print("Downloading {}".format(putio_file))
                 pbar.start()
 
             def progress_callback(_download):
@@ -165,7 +170,7 @@ class PutioSynchronizer(object):
                     try:
                         putio_file.delete()
                     except:
-                        print "Error deleting file... assuming all is well but may require manual cleanup"
+                        print("Error deleting file... assuming all is well but may require manual cleanup")
                         traceback.print_exc()
 
             download.add_start_callback(start_callback)
