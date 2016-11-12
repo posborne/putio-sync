@@ -98,13 +98,17 @@ class TokenManager(object):
 class PutioSynchronizer(object):
     """Object encapsulating core synchronization logic and state"""
 
-    def __init__(self, download_directory, putio_client, db_manager, download_manager, keep_files=False, poll_frequency=60):
+    def __init__(self, download_directory, putio_client, db_manager, download_manager, keep_files=False, poll_frequency=60,
+                 download_filter=None, force_keep=None):
         self._putio_client = putio_client
         self._download_directory = download_directory
         self._db_manager = db_manager
         self._poll_frequency = poll_frequency
         self._keep_files = keep_files
         self._download_manager = download_manager
+        # This regex is already compiled
+        self.download_filter = download_filter
+        self.force_keep = force_keep
 
     def get_download_directory(self):
         return self._download_directory
@@ -180,14 +184,23 @@ class PutioSynchronizer(object):
 
     def _queue_download(self, putio_file, relpath="", level=0):
         # add this file (or files in this directory) to the queue
+
+        full_path = os.path.sep + os.path.join(relpath, putio_file.name)
+        full_path = full_path.replace("\\", "/")
         if not self._is_directory(putio_file):
-            target_dir = os.path.join(self._download_directory, relpath)
-            self._do_queue_download(putio_file, target_dir, delete_after_download=(not self._keep_files))
+            if self.download_filter is not None:
+                if self.download_filter.match(full_path) is None:
+                    logger.debug("Skipping '{0}' because it does not match the provided filter".format(full_path))
+                else:
+                    target_dir = os.path.join(self._download_directory, relpath)
+                    delete_file = not self._keep_files and (self.force_keep is None or  self.force_keep.match(full_path) is None)
+                    self._do_queue_download(putio_file, target_dir, delete_after_download=delete_file)
         else:
             children = putio_file.dir()
             if not children:
                 # this is a directory with no children, it must be destroyed
-                putio_file.delete()
+                if self.force_keep is None or self.force_keep.match(full_path) is None:
+                    putio_file.delete()
             else:
                 for child in children:
                     self._queue_download(child, os.path.join(relpath, putio_file.name), level + 1)
