@@ -54,6 +54,18 @@ def parse_arguments():
         )
     )
     parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        type=str,
+        help="Host where the webserver should listen to. Default: 0.0.0.0"
+    )
+    parser.add_argument(
+        "--port",
+        default="7001",
+        type=str,
+        help="Port where the webserver should listen to. Default: 7001"
+    )
+    parser.add_argument(
         "download_directory",
         help="Directory into which files should be downloaded"
     )
@@ -104,7 +116,7 @@ def main():
     t = threading.Thread(target=synchronizer.run_forever)
     t.setDaemon(True)
     t.start()
-    web_interface = WebInterface(db_manager, download_manager, putio_client, synchronizer, launch_browser=(not args.quiet))
+    web_interface = WebInterface(db_manager, download_manager, putio_client, synchronizer, launch_browser=(not args.quiet), host=args.host, port=args.port)
     web_interface.run()
     return 0
 

@@ -10,9 +10,6 @@ from flask import render_template
 from putiosync.webif.transmissionrpc import TransmissionRPCServer
 from sqlalchemy import desc, func
 
-APPLICATION_HOST = "0.0.0.0"
-APPLICATION_PORT = 7001  # avoid conflict with default flask port
-
 logger = logging.getLogger("putiosync.webif")
 
 
@@ -96,7 +93,8 @@ class DownloadRateTracker(object):
 
 
 class WebInterface(object):
-    def __init__(self, db_manager, download_manager, putio_client, synchronizer, launch_browser=False):
+    def __init__(self, db_manager, download_manager, putio_client, synchronizer, launch_browser=False, host="0.0.0.0",
+                 port=7001):
         self.app = flask.Flask(__name__)
         self.synchronizer = synchronizer
         self.db_manager = db_manager
@@ -105,6 +103,8 @@ class WebInterface(object):
         self.putio_client = putio_client
         self.transmission_rpc_server = TransmissionRPCServer(putio_client, self.synchronizer)
         self.launch_browser = launch_browser
+        self._host = host
+        self._port = port
         self._rate_tracker = DownloadRateTracker()
 
         self.app.logger.setLevel(logging.DEBUG)
@@ -194,5 +194,5 @@ class WebInterface(object):
     def run(self):
         if self.launch_browser:
             import webbrowser
-            webbrowser.open("http://localhost:{}/".format(APPLICATION_PORT))
-        self.app.run(APPLICATION_HOST, APPLICATION_PORT)
+            webbrowser.open("http://localhost:{}/".format(self._port))
+        self.app.run(self._host, self._port)
