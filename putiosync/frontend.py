@@ -26,9 +26,9 @@ def parse_arguments():
         default=None,
         type=str,
         help=(
-            "Filter for skipping deletion of specific files/folders."
-            "If keep parameter is set to false, only files/folders will be deleted which"
-            "do not match the given regex"
+            "Filter for skipping deletion of specific files/folders. "
+            "If keep parameter is set to false, only files/folders will be deleted which "
+            "do not match the given regex. "
             "Example: putio-sync -force-keep=\"^/Series$\" /path/to/Downloads"
         )
     )
@@ -42,7 +42,7 @@ def parse_arguments():
         "-p", "--poll-frequency",
         default=60 * 3,
         type=int,
-        help="Polling frequency in seconds (default: 1 minute)",
+        help="Polling frequency in seconds (default: 3 minutes)",
     )
     parser.add_argument(
         "-c", "--post-process-command",
@@ -60,8 +60,8 @@ def parse_arguments():
         default=None,
         type=str,
         help=(
-            "Directory to watch for torrent or magnet files.  If this option is"
-            "present and new files are added, they will be added to put.io and"
+            "Directory to watch for torrent or magnet files.  If this option is "
+            "present and new files are added, they will be added to put.io and "
             "automatically downloaded by the daemon when complete."
         )
     )
@@ -82,8 +82,8 @@ def parse_arguments():
         default=None,
         type=str,
         help=(
-            "Filter for excluding or including specific files/folders from downloading."
-            "The filter is a regular expression (regex)"
+            "Filter for excluding or including specific files/folders from downloading. "
+            "The filter is a regular expression (regex). "
             "Example: putio-sync -f '/some/folder/*.avi' /path/to/Downloads"
         )
     )
