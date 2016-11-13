@@ -4,6 +4,7 @@ import sys
 import threading
 import subprocess
 import putio
+import re
 from putiosync.core import TokenManager, PutioSynchronizer, DatabaseManager
 from putiosync.download_manager import DownloadManager
 from putiosync.watcher import TorrentWatcher
@@ -21,6 +22,17 @@ def parse_arguments():
         help="Keep files on put.io; do not automatically delete"
     )
     parser.add_argument(
+        "--force-keep",
+        default=None,
+        type=str,
+        help=(
+            "Filter for skipping deletion of specific files/folders. "
+            "If keep parameter is set to false, only files/folders will be deleted which "
+            "do not match the given regex. "
+            "Example: putio-sync -force-keep=\"^/Series$\" /path/to/Downloads"
+        )
+    )
+    parser.add_argument(
         "-q", "--quiet",
         action="store_true",
         default=False,
@@ -30,7 +42,7 @@ def parse_arguments():
         "-p", "--poll-frequency",
         default=60 * 3,
         type=int,
-        help="Polling frequency in seconds (default: 1 minute)",
+        help="Polling frequency in seconds (default: 3 minutes)",
     )
     parser.add_argument(
         "-c", "--post-process-command",
@@ -48,8 +60,8 @@ def parse_arguments():
         default=None,
         type=str,
         help=(
-            "Directory to watch for torrent or magnet files.  If this option is"
-            "present and new files are added, they will be added to put.io and"
+            "Directory to watch for torrent or magnet files.  If this option is "
+            "present and new files are added, they will be added to put.io and "
             "automatically downloaded by the daemon when complete."
         )
     )
@@ -64,6 +76,16 @@ def parse_arguments():
         default="7001",
         type=str,
         help="Port where the webserver should listen to. Default: 7001"
+    )
+    parser.add_argument(
+        "-f", "--filter",
+        default=None,
+        type=str,
+        help=(
+            "Filter for excluding or including specific files/folders from downloading. "
+            "The filter is a regular expression (regex). "
+            "Example: putio-sync -f '/some/folder/*.avi' /path/to/Downloads"
+        )
     )
     parser.add_argument(
         "download_directory",
@@ -105,6 +127,22 @@ def main():
         torrent_watcher = TorrentWatcher(args.watch_directory, putio_client)
         torrent_watcher.start()
 
+    filter_compiled = None
+    if args.filter is not None:
+        try:
+            filter_compiled = re.compile(args.filter)
+        except re.error as e:
+            print("Invalid filter regex: {0}".format(e))
+            exit(1)
+
+    force_keep_compiled = None
+    if args.force_keep is not None:
+        try:
+            force_keep_compiled = re.compile(args.force_keep)
+        except re.error as e:
+            print("Invalid force_keep regex: {0}".format(e))
+            exit(1)
+
     download_manager.start()
     synchronizer = PutioSynchronizer(
         download_directory=args.download_directory,
@@ -112,7 +150,9 @@ def main():
         db_manager=db_manager,
         download_manager=download_manager,
         keep_files=args.keep,
-        poll_frequency=args.poll_frequency)
+        poll_frequency=args.poll_frequency,
+        download_filter=filter_compiled,
+        force_keep=force_keep_compiled)
     t = threading.Thread(target=synchronizer.run_forever)
     t.setDaemon(True)
     t.start()
