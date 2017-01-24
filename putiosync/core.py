@@ -3,28 +3,21 @@
 # Program for automatically downloading and removing files that are
 # successfully downloaded from put.io.
 #
-import collections
 import json
 import datetime
 import logging
 import traceback
 import progressbar
-from putiosync import multipart_downloader
 from putiosync.dbmodel import DBModelBase, DownloadRecord
 from putiosync.download_manager import Download
-import re
 import webbrowser
 import time
 import os
 import sys
-import putio
 from sqlalchemy import create_engine, exists
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import sessionmaker
 
-
-logging.basicConfig(level=logging.WARN,
-                    format='%(asctime)s | %(name)-12s | %(levelname)-8s | %(message)s')
 logger = logging.getLogger("putiosync")
 
 
@@ -99,7 +92,7 @@ class PutioSynchronizer(object):
     """Object encapsulating core synchronization logic and state"""
 
     def __init__(self, download_directory, putio_client, db_manager, download_manager, keep_files=False, poll_frequency=60,
-                 download_filter=None, force_keep=None):
+                 download_filter=None, force_keep=None, disable_progress=False):
         self._putio_client = putio_client
         self._download_directory = download_directory
         self._db_manager = db_manager
@@ -109,6 +102,7 @@ class PutioSynchronizer(object):
         # This regex is already compiled
         self.download_filter = download_filter
         self.force_keep = force_keep
+        self.disable_progress = disable_progress
 
     def get_download_directory(self):
         return self._download_directory
@@ -150,15 +144,16 @@ class PutioSynchronizer(object):
 
             download = Download(putio_file, dest)
             total = putio_file.size
-            widgets = [
-                progressbar.Percentage(), ' ',
-                progressbar.Bar(), ' ',
-                progressbar.ETA(), ' ',
-                progressbar.FileTransferSpeed()]
-            pbar = progressbar.ProgressBar(widgets=widgets, maxval=total)
+            if self.disable_progress is False:
+                widgets = [
+                    progressbar.Percentage(), ' ',
+                    progressbar.Bar(), ' ',
+                    progressbar.ETA(), ' ',
+                    progressbar.FileTransferSpeed()]
+                pbar = progressbar.ProgressBar(widgets=widgets, maxval=total)
 
             def start_callback(_download):
-                print("Downloading {}".format(putio_file))
+                logger.info("Starting download {}".format(putio_file))
                 pbar.start()
 
             def progress_callback(_download):
@@ -170,17 +165,29 @@ class PutioSynchronizer(object):
             def completion_callback(_download):
                 # and write a record of the download to the database
                 self._record_downloaded(putio_file)
+                logger.info("Download finished: {}".format(putio_file.name))
                 if delete_after_download:
                     try:
                         putio_file.delete()
                     except:
-                        print("Error deleting file... assuming all is well but may require manual cleanup")
+                        logger.error("Error deleting file {}. Assuming all is well but may require manual cleanup".format(putio_file.name))
                         traceback.print_exc()
 
             download.add_start_callback(start_callback)
-            download.add_progress_callback(progress_callback)
+            if self.disable_progress is False:
+                download.add_progress_callback(progress_callback)
             download.add_completion_callback(completion_callback)
             self._download_manager.add_download(download)
+        else:
+            logger.debug("Already downloaded: '{}'".format(putio_file.name))
+            if delete_after_download:
+                try:
+                    putio_file.delete()
+                except:
+                    logger.error("Error deleting file... assuming all is well but may require manual cleanup")
+                    traceback.print_exc()
+
+
 
     def _queue_download(self, putio_file, relpath="", level=0):
         # add this file (or files in this directory) to the queue
@@ -192,6 +199,7 @@ class PutioSynchronizer(object):
                 if self.download_filter.match(full_path) is None:
                     logger.debug("Skipping '{0}' because it does not match the provided filter".format(full_path))
                 else:
+                    logger.debug("Adding download to queue: '{0}'".format(full_path))
                     target_dir = os.path.join(self._download_directory, relpath)
                     delete_file = not self._keep_files and (self.force_keep is None or  self.force_keep.match(full_path) is None)
                     self._do_queue_download(putio_file, target_dir, delete_after_download=delete_file)
