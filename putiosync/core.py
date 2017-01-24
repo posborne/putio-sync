@@ -144,7 +144,7 @@ class PutioSynchronizer(object):
 
             download = Download(putio_file, dest)
             total = putio_file.size
-            if self.disable_progress is False:
+            if not self.disable_progress:
                 widgets = [
                     progressbar.Percentage(), ' ',
                     progressbar.Bar(), ' ',
@@ -154,7 +154,8 @@ class PutioSynchronizer(object):
 
             def start_callback(_download):
                 logger.info("Starting download {}".format(putio_file))
-                pbar.start()
+                if not self.disable_progress:
+                    pbar.start()
 
             def progress_callback(_download):
                 try:
@@ -218,8 +219,8 @@ class PutioSynchronizer(object):
             # Perform a single check for updated files to download
             for putio_file in self._putio_client.File.list():
                 self._queue_download(putio_file)
-        except:
-            logger.error("Unexpected error while performing check/download")
+        except Exception as ex:
+            logger.error("Unexpected error while performing check/download: {}".format(ex))
 
     def _wait_until_downloads_complete(self):
         while not self._download_manager.is_empty():
