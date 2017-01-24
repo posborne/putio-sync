@@ -10,9 +10,6 @@ from flask import render_template
 from putiosync.webif.transmissionrpc import TransmissionRPCServer
 from sqlalchemy import desc, func
 
-logger = logging.getLogger("putiosync.webif")
-
-
 class Pagination(object):
     # NOTE: pagination is a feature that is included with flask-sqlalchemy, but after
     #   working with it initially, it was far too hacky to use this in combination
@@ -107,7 +104,7 @@ class WebInterface(object):
         self._port = port
         self._rate_tracker = DownloadRateTracker()
 
-        self.app.logger.setLevel(logging.DEBUG)
+        self.app.logger.setLevel(logging.WARNING)
 
         def include_datetime(result):
             print(result)

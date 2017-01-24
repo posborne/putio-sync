@@ -9,7 +9,7 @@ Also, it should be noted that this has been tested with downloads provided
 by put.io, but your mileage may vary for other servers.
 
 """
-from queue import Queue
+from Queue import Queue
 import threading
 import requests
 
