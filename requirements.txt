@@ -9,3 +9,4 @@ flask-restless==0.12.1
 flask-restful==0.2.11
 future==0.16.0
 watchdog==0.8.3
+pid==2.1.1
