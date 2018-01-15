@@ -96,7 +96,7 @@ class Download(object):
         dest = self.get_destination_directory()
         filename = self.get_filename()
 
-        final_path = os.path.join(dest, filename)
+        final_path = os.path.join(dest, filename).encode('utf-8')
         download_path = "{}.part".format(final_path)
 
         # ensure the path into which the download is going to be donwloaded exists. We know
