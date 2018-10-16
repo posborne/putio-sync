@@ -102,8 +102,8 @@ def parse_arguments():
     )
     parser.add_argument(
         "--port",
-        default="7001",
-        type=str,
+        default=7001,
+        type=int,
         help="Port where the webserver should listen to. Default: 7001"
     )
     parser.add_argument(
