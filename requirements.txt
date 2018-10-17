@@ -1,6 +1,6 @@
 # Can be install by doing
 # pip install -r requirements.txt
-requests==2.2.0
+requests==2.6.0
 putio.py==2.1.0
 progressbar==2.2
 sqlalchemy==0.9.1

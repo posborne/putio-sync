@@ -196,14 +196,13 @@ class PutioSynchronizer(object):
         full_path = os.path.sep + os.path.join(relpath, putio_file.name)
         full_path = full_path.replace("\\", "/")
         if not self._is_directory(putio_file):
-            if self.download_filter is not None:
-                if self.download_filter.match(full_path) is None:
-                    logger.debug("Skipping '{0}' because it does not match the provided filter".format(full_path))
-                else:
-                    logger.debug("Adding download to queue: '{0}'".format(full_path))
-                    target_dir = os.path.join(self._download_directory, relpath)
-                    delete_file = not self._keep_files and (self.force_keep is None or  self.force_keep.match(full_path) is None)
-                    self._do_queue_download(putio_file, target_dir, delete_after_download=delete_file)
+            if self.download_filter is not None and self.download_filter.match(full_path) is None:
+                logger.debug("Skipping '{0}' because it does not match the provided filter".format(full_path))
+            else:
+                logger.debug("Adding download to queue: '{0}'".format(full_path))
+                target_dir = os.path.join(self._download_directory, relpath)
+                delete_file = not self._keep_files and (self.force_keep is None or  self.force_keep.match(full_path) is None)
+                self._do_queue_download(putio_file, target_dir, delete_after_download=delete_file)
         else:
             children = putio_file.dir()
             if not children:
