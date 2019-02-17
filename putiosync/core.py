@@ -112,6 +112,8 @@ class PutioSynchronizer(object):
 
     def _already_downloaded(self, putio_file, dest):
         filename = putio_file.name.encode('ascii', 'ignore')
+        logger.warn("File name check: %r", putio_file.name)
+
         if os.path.exists(os.path.join(dest, "{}".format(filename))):
             return True  # TODO: check size and/or crc32 checksum?
         matching_rec_exists = self._db_manager.get_db_session().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
