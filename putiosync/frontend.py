@@ -126,7 +126,7 @@ def parse_arguments():
 
 def build_postprocess_download_completion_callback(postprocess_command):
     def download_completed(download):
-        cmd=postprocess_command.format(download.get_destination_path().encode('ascii'))
+        cmd=postprocess_command.format(download.get_destination_path().encode('utf-8'))
         logger.info("Postprocess: {0}".format(cmd))
         subprocess.call(cmd, shell=True)
 
