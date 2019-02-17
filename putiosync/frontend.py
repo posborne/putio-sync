@@ -136,7 +136,7 @@ def start_sync(args):
 
     formatter = logging.Formatter('%(asctime)s | %(name)-12s | %(levelname)-8s | %(message)s')
 
-    log_level = logging.DEBUG
+    log_level = logging.ERROR
     if args.log_level is not None:
         if args.log_level == "debug":
             log_level = logging.DEBUG
