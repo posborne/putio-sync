@@ -219,6 +219,7 @@ class PutioSynchronizer(object):
             else:
                 logger.error("Directory with children")
                 for child in children:
+                    logger.error("Queuing child file: {}".format(child.name))
                     self._queue_download(child, os.path.join(relpath, putio_file.name), level + 1)
 
     def _perform_single_check(self):
