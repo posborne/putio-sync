@@ -17,7 +17,6 @@ import sys
 from sqlalchemy import create_engine, exists
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import sessionmaker
-sys.setdefaultencoding('utf-8')
 
 
 logger = logging.getLogger("putiosync")
