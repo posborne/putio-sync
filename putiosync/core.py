@@ -213,9 +213,11 @@ class PutioSynchronizer(object):
             children = putio_file.dir()
             if not children:
                 # this is a directory with no children, it must be destroyed
+                logger.error("Directory with no children")
                 if self.force_keep is None or self.force_keep.match(full_path) is None:
                     putio_file.delete()
             else:
+                logger.error("Directory with children")
                 for child in children:
                     self._queue_download(child, os.path.join(relpath, putio_file.name), level + 1)
 
