@@ -194,6 +194,7 @@ class PutioSynchronizer(object):
         # add this file (or files in this directory) to the queue
 
         full_path = os.path.sep + os.path.join(relpath, putio_file.name)
+        logger.error("File path: {}".format(full_path))
         full_path = full_path.replace("\\", "/")
         if not self._is_directory(putio_file):
             if self.download_filter is not None and self.download_filter.match(full_path) is None:
