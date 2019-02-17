@@ -39,7 +39,7 @@ class Download(object):
         return self._destination_directory
 
     def get_filename(self):
-        return self.get_putio_file().name.encode('ascii', 'ignore')
+        return self.get_putio_file().name.encode('utf-8', 'ignore')
 
     def get_destination_path(self):
         return os.path.join(os.path.abspath(self._destination_directory),
