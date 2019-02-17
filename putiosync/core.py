@@ -215,13 +215,13 @@ class PutioSynchronizer(object):
                     self._queue_download(child, os.path.join(relpath, putio_file.name), level + 1)
 
     def _perform_single_check(self):
-        logger.error("File to check: {}".format(self))
         try:
             # Perform a single check for updated files to download
             for putio_file in self._putio_client.File.list():
                 self._queue_download(putio_file)
         except Exception as ex:
             logger.error("Unexpected error while performing check/download: {}".format(ex))
+            logger.error("File checked: {}".format(self))
 
     def _wait_until_downloads_complete(self):
         while not self._download_manager.is_empty():
