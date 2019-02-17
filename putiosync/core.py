@@ -111,7 +111,7 @@ class PutioSynchronizer(object):
         return (putio_file.content_type == 'application/x-directory')
 
     def _already_downloaded(self, putio_file, dest):
-        filename = putio_file.name.encode('ascii', 'ignore')
+        filename = putio_file.name.encode('utf-8', 'ignore')
         logger.warn("File name check: %r", putio_file.name)
 
         if os.path.exists(os.path.join(dest, "{}".format(filename))):
