@@ -200,6 +200,7 @@ class PutioSynchronizer(object):
         full_path = full_path.replace("\\", "/")
         logger.error("File path after replace: {}".format(full_path))
         if not self._is_directory(putio_file):
+            logger.error("Its a file!")
             if self.download_filter is not None and self.download_filter.match(full_path) is None:
                 logger.debug("Skipping '{0}' because it does not match the provided filter".format(full_path))
             else:
@@ -208,6 +209,7 @@ class PutioSynchronizer(object):
                 delete_file = not self._keep_files and (self.force_keep is None or  self.force_keep.match(full_path) is None)
                 self._do_queue_download(putio_file, target_dir, delete_after_download=delete_file)
         else:
+            logger.error("Its a folder!")
             children = putio_file.dir()
             if not children:
                 # this is a directory with no children, it must be destroyed
