@@ -15,7 +15,7 @@ from putiosync.webif.webif import WebInterface
 __author__ = 'Paul Osborne'
 
 logger = logging.getLogger("putiosync")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 
 def parse_arguments():

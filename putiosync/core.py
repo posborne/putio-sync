@@ -199,7 +199,6 @@ class PutioSynchronizer(object):
         full_path = os.path.sep + os.path.join(relpath, putio_file.name.encode('utf-8','ignore'))
         full_path = full_path.replace("\\", "/")
         if not self._is_directory(putio_file):
-            logger.error("Its a file!")
             if self.download_filter is not None and self.download_filter.match(full_path) is None:
                 logger.debug("Skipping '{0}' because it does not match the provided filter".format(full_path))
             else:
