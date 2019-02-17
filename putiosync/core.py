@@ -169,7 +169,7 @@ class PutioSynchronizer(object):
             def completion_callback(_download):
                 # and write a record of the download to the database
                 self._record_downloaded(putio_file)
-                logger.info("Download finished: {}".format(putio_file.name))
+                logger.info("Download finished: {}".format(putio_file.name.encode('utf-8','ignore')))
                 if delete_after_download:
                     try:
                         putio_file.delete()
@@ -183,7 +183,7 @@ class PutioSynchronizer(object):
             download.add_completion_callback(completion_callback)
             self._download_manager.add_download(download)
         else:
-            logger.debug("Already downloaded: '{}'".format(putio_file.name))
+            logger.debug("Already downloaded: '{}'".format(putio_file.name.encode('utf-8','ignore')))
             if delete_after_download:
                 try:
                     putio_file.delete()
@@ -197,9 +197,7 @@ class PutioSynchronizer(object):
         # add this file (or files in this directory) to the queue
 
         full_path = os.path.sep + os.path.join(relpath, putio_file.name.encode('utf-8','ignore'))
-        logger.error("File path: {}".format(full_path))
         full_path = full_path.replace("\\", "/")
-        logger.error("File path after replace: {}".format(full_path))
         if not self._is_directory(putio_file):
             logger.error("Its a file!")
             if self.download_filter is not None and self.download_filter.match(full_path) is None:
@@ -210,15 +208,12 @@ class PutioSynchronizer(object):
                 delete_file = not self._keep_files and (self.force_keep is None or  self.force_keep.match(full_path) is None)
                 self._do_queue_download(putio_file, target_dir, delete_after_download=delete_file)
         else:
-            logger.error("Its a folder!")
             children = putio_file.dir()
             if not children:
                 # this is a directory with no children, it must be destroyed
-                logger.error("Directory with no children")
                 if self.force_keep is None or self.force_keep.match(full_path) is None:
                     putio_file.delete()
             else:
-                logger.error("Directory with children")
                 for child in children:
                     self._queue_download(child, os.path.join(relpath, putio_file.name.encode('utf-8','ignore')), level + 1)
 
