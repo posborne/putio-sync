@@ -197,7 +197,7 @@ class PutioSynchronizer(object):
         # add this file (or files in this directory) to the queue
 
         full_path = os.path.sep + os.path.join(relpath, putio_file.name)
-        logger.error("File path: {}".format(full_path.name))
+        logger.error("File path: {}".format(full_path))
         full_path = full_path.replace("\\", "/")
         logger.error("File path after replace: {}".format(full_path))
         if not self._is_directory(putio_file):
@@ -220,7 +220,6 @@ class PutioSynchronizer(object):
             else:
                 logger.error("Directory with children")
                 for child in children:
-                    logger.error("Queuing child file: {}".format(child.name.encode('utf-8','ignore')))
                     self._queue_download(child, os.path.join(relpath, putio_file.name), level + 1)
 
     def _perform_single_check(self):
