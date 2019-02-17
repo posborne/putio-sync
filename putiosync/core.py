@@ -113,7 +113,7 @@ class PutioSynchronizer(object):
 
     def _already_downloaded(self, putio_file, dest):
         filename = putio_file.name.encode('utf-8', 'ignore')
-        logger.warn("File name check: %r", putio_file.name)
+        logger.warn("File name check: %r", putio_file.name.encode('utf-8','ignore'))
 
         if os.path.exists(os.path.join(dest, "{}".format(filename))):
             return True  # TODO: check size and/or crc32 checksum?
@@ -196,7 +196,7 @@ class PutioSynchronizer(object):
     def _queue_download(self, putio_file, relpath="", level=0):
         # add this file (or files in this directory) to the queue
 
-        full_path = os.path.sep + os.path.join(relpath, putio_file.name)
+        full_path = os.path.sep + os.path.join(relpath, putio_file.name.encode('utf-8','ignore'))
         logger.error("File path: {}".format(full_path))
         full_path = full_path.replace("\\", "/")
         logger.error("File path after replace: {}".format(full_path))
