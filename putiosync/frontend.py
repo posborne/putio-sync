@@ -15,7 +15,7 @@ from putiosync.webif.webif import WebInterface
 __author__ = 'Paul Osborne'
 
 logger = logging.getLogger("putiosync")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 
 def parse_arguments():
@@ -168,6 +168,7 @@ def start_sync(args):
 
     log_webif = logging.getLogger('werkzeug')
     log_webif.setLevel(log_level)
+    log_webif.disabled = True
 
     if args.log_webif is not None:
         fh = logging.FileHandler(args.log_webif)
