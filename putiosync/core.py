@@ -18,6 +18,7 @@ from sqlalchemy import create_engine, exists
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import sessionmaker
 
+
 logger = logging.getLogger("putiosync")
 
 
@@ -111,7 +112,9 @@ class PutioSynchronizer(object):
         return (putio_file.content_type == 'application/x-directory')
 
     def _already_downloaded(self, putio_file, dest):
-        filename = putio_file.name.encode('ascii', 'ignore')
+        filename = putio_file.name.encode('utf-8', 'ignore')
+        logger.warn("File name check: %r", putio_file.name.encode('utf-8','ignore'))
+
         if os.path.exists(os.path.join(dest, "{}".format(filename))):
             return True  # TODO: check size and/or crc32 checksum?
         matching_rec_exists = self._db_manager.get_db_session().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
@@ -121,14 +124,14 @@ class PutioSynchronizer(object):
         return self._already_downloaded(putio_file, self._download_directory)
 
     def _record_downloaded(self, putio_file):
-        filename = putio_file.name.encode('ascii', 'ignore')
+        filename = putio_file.name.encode('utf-8', 'ignore')
         matching_rec_exists = self._db_manager.get_db_session().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         if not matching_rec_exists:
             download_record = DownloadRecord(
                 file_id=putio_file.id,
                 size=putio_file.size,
                 timestamp=datetime.datetime.now(),
-                name=filename)
+                name=filename.decode('utf-8'))
             self._db_manager.get_db_session().add(download_record)
             self._db_manager.get_db_session().commit()
         else:
@@ -166,7 +169,7 @@ class PutioSynchronizer(object):
             def completion_callback(_download):
                 # and write a record of the download to the database
                 self._record_downloaded(putio_file)
-                logger.info("Download finished: {}".format(putio_file.name))
+                logger.info("Download finished: {}".format(putio_file.name.encode('utf-8','ignore')))
                 if delete_after_download:
                     try:
                         putio_file.delete()
@@ -180,7 +183,7 @@ class PutioSynchronizer(object):
             download.add_completion_callback(completion_callback)
             self._download_manager.add_download(download)
         else:
-            logger.debug("Already downloaded: '{}'".format(putio_file.name))
+            logger.debug("Already downloaded: '{}'".format(putio_file.name.encode('utf-8','ignore')))
             if delete_after_download:
                 try:
                     putio_file.delete()
@@ -193,7 +196,7 @@ class PutioSynchronizer(object):
     def _queue_download(self, putio_file, relpath="", level=0):
         # add this file (or files in this directory) to the queue
 
-        full_path = os.path.sep + os.path.join(relpath, putio_file.name)
+        full_path = os.path.sep + os.path.join(relpath, putio_file.name.encode('utf-8','ignore'))
         full_path = full_path.replace("\\", "/")
         if not self._is_directory(putio_file):
             if self.download_filter is not None and self.download_filter.match(full_path) is None:
@@ -211,7 +214,7 @@ class PutioSynchronizer(object):
                     putio_file.delete()
             else:
                 for child in children:
-                    self._queue_download(child, os.path.join(relpath, putio_file.name), level + 1)
+                    self._queue_download(child, os.path.join(relpath, putio_file.name.encode('utf-8','ignore')), level + 1)
 
     def _perform_single_check(self):
         try:
@@ -220,6 +223,7 @@ class PutioSynchronizer(object):
                 self._queue_download(putio_file)
         except Exception as ex:
             logger.error("Unexpected error while performing check/download: {}".format(ex))
+            logger.error("File checked: {}".format(putio_file.name.encode('utf-8','ignore')))
 
     def _wait_until_downloads_complete(self):
         while not self._download_manager.is_empty():

@@ -39,7 +39,7 @@ class Download(object):
         return self._destination_directory
 
     def get_filename(self):
-        return self.get_putio_file().name.encode('ascii', 'ignore')
+        return self.get_putio_file().name.encode('utf-8', 'ignore')
 
     def get_destination_path(self):
         return os.path.join(os.path.abspath(self._destination_directory),
@@ -96,8 +96,8 @@ class Download(object):
         dest = self.get_destination_directory()
         filename = self.get_filename()
 
-        final_path = os.path.join(dest, filename).encode('utf-8')
-        download_path = "{}.part".format(final_path)
+        final_path = os.path.join(dest, filename.decode('utf-8'))
+        download_path = "{}.part".format(final_path.encode('utf-8'))
 
         # ensure the path into which the download is going to be donwloaded exists. We know
         # that the 'dest' directory exists but in some cases the filename on put.io may

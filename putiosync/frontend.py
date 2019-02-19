@@ -15,7 +15,7 @@ from putiosync.webif.webif import WebInterface
 __author__ = 'Paul Osborne'
 
 logger = logging.getLogger("putiosync")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 
 def parse_arguments():
@@ -126,7 +126,7 @@ def parse_arguments():
 
 def build_postprocess_download_completion_callback(postprocess_command):
     def download_completed(download):
-        cmd=postprocess_command.format(download.get_destination_path().encode('ascii'))
+        cmd=postprocess_command.format(download.get_destination_path().encode('utf-8'))
         logger.info("Postprocess: {0}".format(cmd))
         subprocess.call(cmd, shell=True)
 
@@ -136,7 +136,7 @@ def start_sync(args):
 
     formatter = logging.Formatter('%(asctime)s | %(name)-12s | %(levelname)-8s | %(message)s')
 
-    log_level = logging.DEBUG
+    log_level = logging.ERROR
     if args.log_level is not None:
         if args.log_level == "debug":
             log_level = logging.DEBUG
@@ -168,6 +168,7 @@ def start_sync(args):
 
     log_webif = logging.getLogger('werkzeug')
     log_webif.setLevel(log_level)
+    log_webif.disabled = True
 
     if args.log_webif is not None:
         fh = logging.FileHandler(args.log_webif)
