@@ -97,7 +97,7 @@ class Download(object):
         filename = self.get_filename()
 
         final_path = os.path.join(dest, filename.decode('utf-8'))
-        download_path = "{}.part".format(final_path)
+        download_path = "{}.part".format(final_path.encode('utf-8'))
 
         # ensure the path into which the download is going to be donwloaded exists. We know
         # that the 'dest' directory exists but in some cases the filename on put.io may
