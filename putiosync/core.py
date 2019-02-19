@@ -131,7 +131,7 @@ class PutioSynchronizer(object):
                 file_id=putio_file.id,
                 size=putio_file.size,
                 timestamp=datetime.datetime.now(),
-                name=filename)
+                name=filename.decode('utf-8'))
             self._db_manager.get_db_session().add(download_record)
             self._db_manager.get_db_session().commit()
         else:
