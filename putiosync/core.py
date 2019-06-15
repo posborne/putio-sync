@@ -80,7 +80,7 @@ class TokenManager(object):
     def obtain_token(self):
         """Obtain token from the user using put.io apptoken URL
         """
-        apptoken_url = "https://api.put.io/v2/oauth2/authenticate?client_id={}&response_type=oob".format(CLIENT_ID)
+        apptoken_url = "https://app.put.io/authenticate?client_id={}&response_type=oob".format(CLIENT_ID)
         print("Opening {}".format(apptoken_url))
         webbrowser.open(apptoken_url)
         if sys.version[0]=="2":
