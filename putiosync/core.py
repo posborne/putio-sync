@@ -17,14 +17,18 @@ import sys
 from sqlalchemy import create_engine, exists
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import sessionmaker
-
+from os import environ
 
 logger = logging.getLogger("putiosync")
 
 
 CLIENT_ID = 1067
-HOME_DIR = os.path.expanduser("~")
-SETTINGS_DIR = os.path.join(HOME_DIR, ".putiosync")
+if environ.get('PUTIO_SYNC_SETTINGS_DIR') is not None:
+	SETTINGS_DIR = environ.get('PUTIO_SYNC_SETTINGS_DIR')
+else:
+	HOME_DIR = os.path.expanduser("~")
+	SETTINGS_DIR = os.path.join(HOME_DIR, ".putiosync")
+
 SYNC_FILE = os.path.join(SETTINGS_DIR, "putiosync.json")
 DATABASE_FILE = os.path.join(SETTINGS_DIR, "putiosync.db")
 CHECK_PERIOD_SECONDS = 10
@@ -64,6 +68,8 @@ class TokenManager(object):
 
     def get_token(self):
         """Restore token from disk or return None if not present"""
+        if environ.get('PUTIO_SYNC_TOKEN') is not None:
+            return environ.get('PUTIO_SYNC_TOKEN')
         try:
             with open(SYNC_FILE, "r") as f:
                 jsondata = f.read()
@@ -73,19 +79,15 @@ class TokenManager(object):
 
     def obtain_token(self):
         """Obtain token from the user using put.io apptoken URL
-
-        This URL wasn't explicitly mentioned in the API docs, but it is what
-        the XBMC app from put.io uses and seems to work
-
         """
-        apptoken_url = "http://put.io/v2/oauth2/apptoken/{}".format(CLIENT_ID)
+        apptoken_url = "https://app.put.io/authenticate?client_id={}&response_type=oob".format(CLIENT_ID)
         print("Opening {}".format(apptoken_url))
         webbrowser.open(apptoken_url)
         if sys.version[0]=="2":
-            input=raw_input
+            input_sock=raw_input
         else:
-            input=input
-        token = input("Enter token: ").strip()
+            input_sock=input
+        token = input_sock("Enter token: ").strip()
         return token
 
 
@@ -112,10 +114,10 @@ class PutioSynchronizer(object):
         return (putio_file.content_type == 'application/x-directory')
 
     def _already_downloaded(self, putio_file, dest):
-        filename = putio_file.name.encode('utf-8', 'ignore')
-        logger.warn("File name check: %r", putio_file.name.encode('utf-8','ignore'))
+        filename = putio_file.name
+        logger.warn("File name check: %r", filename)
 
-        if os.path.exists(os.path.join(dest, "{}".format(filename))):
+        if os.path.exists(os.path.join(dest, filename)):
             return True  # TODO: check size and/or crc32 checksum?
         matching_rec_exists = self._db_manager.get_db_session().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         return matching_rec_exists
@@ -124,14 +126,14 @@ class PutioSynchronizer(object):
         return self._already_downloaded(putio_file, self._download_directory)
 
     def _record_downloaded(self, putio_file):
-        filename = putio_file.name.encode('utf-8', 'ignore')
+        filename = putio_file.name
         matching_rec_exists = self._db_manager.get_db_session().query(exists().where(DownloadRecord.file_id == putio_file.id)).scalar()
         if not matching_rec_exists:
             download_record = DownloadRecord(
                 file_id=putio_file.id,
                 size=putio_file.size,
                 timestamp=datetime.datetime.now(),
-                name=filename.decode('utf-8'))
+                name=filename)
             self._db_manager.get_db_session().add(download_record)
             self._db_manager.get_db_session().commit()
         else:
@@ -156,7 +158,7 @@ class PutioSynchronizer(object):
                 pbar = progressbar.ProgressBar(widgets=widgets, maxval=total)
 
             def start_callback(_download):
-                logger.info("Starting download {}".format(putio_file))
+                logger.info("Starting download {}".format(putio_file.name))
                 if not self.disable_progress:
                     pbar.start()
 
@@ -169,7 +171,7 @@ class PutioSynchronizer(object):
             def completion_callback(_download):
                 # and write a record of the download to the database
                 self._record_downloaded(putio_file)
-                logger.info("Download finished: {}".format(putio_file.name.encode('utf-8','ignore')))
+                logger.info("Download finished: {}".format(putio_file.name))
                 if delete_after_download:
                     try:
                         putio_file.delete()
@@ -183,7 +185,7 @@ class PutioSynchronizer(object):
             download.add_completion_callback(completion_callback)
             self._download_manager.add_download(download)
         else:
-            logger.debug("Already downloaded: '{}'".format(putio_file.name.encode('utf-8','ignore')))
+            logger.debug("Already downloaded: '{}'".format(putio_file.name))
             if delete_after_download:
                 try:
                     putio_file.delete()
@@ -196,7 +198,7 @@ class PutioSynchronizer(object):
     def _queue_download(self, putio_file, relpath="", level=0):
         # add this file (or files in this directory) to the queue
 
-        full_path = os.path.sep + os.path.join(relpath, putio_file.name.encode('utf-8','ignore'))
+        full_path = os.path.sep + os.path.join(relpath, putio_file.name)
         full_path = full_path.replace("\\", "/")
         if not self._is_directory(putio_file):
             if self.download_filter is not None and self.download_filter.match(full_path) is None:
@@ -214,7 +216,7 @@ class PutioSynchronizer(object):
                     putio_file.delete()
             else:
                 for child in children:
-                    self._queue_download(child, os.path.join(relpath, putio_file.name.encode('utf-8','ignore')), level + 1)
+                    self._queue_download(child, os.path.join(relpath, putio_file.name), level + 1)
 
     def _perform_single_check(self):
         try:
@@ -223,7 +225,7 @@ class PutioSynchronizer(object):
                 self._queue_download(putio_file)
         except Exception as ex:
             logger.error("Unexpected error while performing check/download: {}".format(ex))
-            logger.error("File checked: {}".format(putio_file.name.encode('utf-8','ignore')))
+            logger.error("File checked: {}".format(putio_file.name))
 
     def _wait_until_downloads_complete(self):
         while not self._download_manager.is_empty():

@@ -3,8 +3,7 @@ from math import ceil
 import datetime
 
 import flask
-import flask.ext.restless
-from flask.ext.restless import APIManager
+from flask_restless import APIManager
 from putiosync.dbmodel import DownloadRecord
 from flask import render_template
 from putiosync.webif.transmissionrpc import TransmissionRPCServer

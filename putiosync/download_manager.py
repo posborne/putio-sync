@@ -2,7 +2,7 @@ from collections import deque
 import threading
 import time
 import datetime
-import putio
+import putiopy
 import os
 from putiosync import multipart_downloader
 
@@ -116,7 +116,7 @@ class Download(object):
                 self._fire_progress_callbacks()
 
             success = multipart_downloader.download(
-                putio.BASE_URL + '/files/{}/download'.format(putio_file.id),
+                putiopy.BASE_URL + '/files/{}/download'.format(putio_file.id),
                 self.get_size(),
                 transfer_callback,
                 params={'oauth_token': token})

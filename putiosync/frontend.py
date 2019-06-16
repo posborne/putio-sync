@@ -3,7 +3,7 @@ import shlex
 import sys
 import threading
 import subprocess
-import putio
+import putiopy
 import re
 import logging
 from pid import PidFile
@@ -187,7 +187,7 @@ def start_sync(args):
     token_manager.save_token(token)
 
     # Let's start syncing!
-    putio_client = putio.Client(token)
+    putio_client = putiopy.Client(token)
     db_manager = DatabaseManager()
     download_manager = DownloadManager(token=token)
     if args.post_process_command is not None:
